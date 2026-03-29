@@ -1,0 +1,569 @@
+"use client";
+
+import { useState, useEffect, useCallback, type FormEvent } from "react";
+import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
+import { Card } from "@/src/components/Card";
+import { StatusBadge } from "@/src/components/StatusBadge";
+
+interface Site {
+  id: string;
+  siteName: string;
+  siteUrl: string;
+  ga4PropertyId: string;
+  reportStartDate: string;
+  isActive: boolean;
+  reports: Array<{
+    id: string;
+    reportMonth: string;
+    status: "generated" | "delivered" | "failed";
+    generatedAt: string | null;
+  }>;
+}
+
+interface LineTarget {
+  id: string;
+  lineId: string;
+  type: "user" | "group";
+  displayName: string | null;
+  isActive: boolean;
+  joinedAt: string;
+}
+
+interface ClientDetail {
+  id: string;
+  name: string;
+  contactEmail: string | null;
+  lineUserId: string | null;
+  deliveryChannel: "email" | "line" | "both";
+  isActive: boolean;
+  sites: Site[];
+}
+
+const channelLabels: Record<string, string> = {
+  email: "メール",
+  line: "LINE",
+  both: "メール + LINE",
+};
+
+export default function ClientDetailPage() {
+  const params = useParams();
+  const router = useRouter();
+  const [client, setClient] = useState<ClientDetail | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [showSiteForm, setShowSiteForm] = useState(false);
+  const [reportFormSiteId, setReportFormSiteId] = useState<string | null>(null);
+  const [reportRange, setReportRange] = useState({ startDate: "", endDate: "" });
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [editData, setEditData] = useState({
+    name: "",
+    contactEmail: "",
+    lineUserId: "",
+    deliveryChannel: "email" as "email" | "line" | "both",
+  });
+  const [siteFormData, setSiteFormData] = useState({
+    siteName: "",
+    siteUrl: "",
+    ga4PropertyId: "",
+    reportStartDate: "",
+  });
+  const [showLineLink, setShowLineLink] = useState(false);
+  const [lineTargets, setLineTargets] = useState<LineTarget[]>([]);
+  const [lineTypeFilter, setLineTypeFilter] = useState<"" | "user" | "group">("");
+  const [isAssigning, setIsAssigning] = useState(false);
+
+  const fetchClient = useCallback(async () => {
+    const res = await fetch(`/api/clients/${params.id}`);
+    if (!res.ok) {
+      router.push("/clients");
+      return;
+    }
+    const data = await res.json();
+    setClient(data);
+    setEditData({
+      name: data.name,
+      contactEmail: data.contactEmail ?? "",
+      lineUserId: data.lineUserId ?? "",
+      deliveryChannel: data.deliveryChannel,
+    });
+  }, [params.id, router]);
+
+  useEffect(() => {
+    const load = async () => {
+      await fetchClient();
+    };
+    void load();
+
+  }, [fetchClient]);
+
+  const handleUpdate = async (e: FormEvent) => {
+    e.preventDefault();
+    const res = await fetch(`/api/clients/${params.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: editData.name,
+        contactEmail: editData.contactEmail || null,
+        lineUserId: editData.lineUserId || null,
+        deliveryChannel: editData.deliveryChannel,
+      }),
+    });
+    if (res.ok) {
+      setIsEditing(false);
+      fetchClient();
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!confirm("このクライアントを無効化しますか？")) return;
+    const res = await fetch(`/api/clients/${params.id}`, { method: "DELETE" });
+    if (res.ok) {
+      router.push("/clients");
+    }
+  };
+
+  const handleAddSite = async (e: FormEvent) => {
+    e.preventDefault();
+    const res = await fetch("/api/sites", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        clientId: params.id,
+        ...siteFormData,
+      }),
+    });
+    if (res.ok) {
+      setShowSiteForm(false);
+      setSiteFormData({ siteName: "", siteUrl: "", ga4PropertyId: "", reportStartDate: "" });
+      fetchClient();
+    }
+  };
+
+  const fetchLineTargets = useCallback(async (type?: "user" | "group") => {
+    try {
+      const params = new URLSearchParams({ unassigned: "true" });
+      if (type) params.set("type", type);
+      const res = await fetch(`/api/line-followers?${params}`);
+      if (res.ok) {
+        const data = await res.json();
+        setLineTargets(data.followers);
+      }
+    } catch {
+      console.error("LINE送信先の取得に失敗");
+    }
+  }, []);
+
+  const handleAssignLine = async (targetId: string) => {
+    setIsAssigning(true);
+    try {
+      const res = await fetch(`/api/line-followers/${targetId}/assign`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clientId: params.id }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setShowLineLink(false);
+        fetchClient();
+      } else {
+        alert(`エラー: ${data.error}`);
+      }
+    } catch {
+      alert("LINE紐づけに失敗しました");
+    } finally {
+      setIsAssigning(false);
+    }
+  };
+
+  const handleGenerateReport = async (siteId: string) => {
+    if (!reportRange.startDate || !reportRange.endDate) {
+      alert("開始日と終了日を指定してください");
+      return;
+    }
+    if (reportRange.startDate > reportRange.endDate) {
+      alert("開始日は終了日より前にしてください");
+      return;
+    }
+    setIsGenerating(true);
+    try {
+      const res = await fetch("/api/reports/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          siteId,
+          startDate: reportRange.startDate,
+          endDate: reportRange.endDate,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setReportFormSiteId(null);
+        setReportRange({ startDate: "", endDate: "" });
+        router.push(`/reports/${data.reportId}`);
+      } else {
+        alert(`エラー: ${data.error}`);
+      }
+    } catch {
+      alert("レポート生成に失敗しました");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  if (!client) {
+    return <div className="text-center py-8 text-gray-500">読み込み中...</div>;
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Link href="/clients" className="text-gray-500 hover:text-gray-700">
+            &larr; 戻る
+          </Link>
+          <h2 className="text-2xl font-bold text-gray-900">{client.name}</h2>
+          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${client.isActive ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-600"}`}>
+            {client.isActive ? "有効" : "無効"}
+          </span>
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setIsEditing(!isEditing)}
+            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+          >
+            {isEditing ? "キャンセル" : "編集"}
+          </button>
+          <button
+            onClick={handleDelete}
+            className="px-4 py-2 bg-red-50 text-red-700 rounded-lg hover:bg-red-100 transition-colors"
+          >
+            無効化
+          </button>
+        </div>
+      </div>
+
+      {isEditing ? (
+        <Card title="クライアント情報編集">
+          <form onSubmit={handleUpdate} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">会社名</label>
+                <input
+                  type="text"
+                  value={editData.name}
+                  onChange={(e) => setEditData({ ...editData, name: e.target.value })}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-[#1a1a2e]"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">配信チャネル</label>
+                <select
+                  value={editData.deliveryChannel}
+                  onChange={(e) => setEditData({ ...editData, deliveryChannel: e.target.value as "email" | "line" | "both" })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-[#1a1a2e]"
+                >
+                  <option value="email">メール</option>
+                  <option value="line">LINE</option>
+                  <option value="both">メール + LINE</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">メールアドレス</label>
+                <input
+                  type="email"
+                  value={editData.contactEmail}
+                  onChange={(e) => setEditData({ ...editData, contactEmail: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-[#1a1a2e]"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">LINE ユーザーID</label>
+                <input
+                  type="text"
+                  value={editData.lineUserId}
+                  onChange={(e) => setEditData({ ...editData, lineUserId: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-[#1a1a2e]"
+                />
+              </div>
+            </div>
+            <div className="flex justify-end">
+              <button type="submit" className="px-6 py-2 bg-[#1a1a2e] text-white rounded-lg hover:bg-[#16213e]">
+                更新
+              </button>
+            </div>
+          </form>
+        </Card>
+      ) : (
+        <Card title="クライアント情報">
+          <dl className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <dt className="text-sm text-gray-500">会社名</dt>
+              <dd className="mt-1 font-medium">{client.name}</dd>
+            </div>
+            <div>
+              <dt className="text-sm text-gray-500">配信チャネル</dt>
+              <dd className="mt-1">{channelLabels[client.deliveryChannel]}</dd>
+            </div>
+            <div>
+              <dt className="text-sm text-gray-500">メールアドレス</dt>
+              <dd className="mt-1">{client.contactEmail ?? "-"}</dd>
+            </div>
+            <div>
+              <dt className="text-sm text-gray-500">LINE ユーザーID</dt>
+              <dd className="mt-1 flex items-center gap-2">
+                {client.lineUserId ? (
+                  <span className="font-mono text-xs">{client.lineUserId}</span>
+                ) : (
+                  <>
+                    <span className="text-gray-400">未設定</span>
+                    <button
+                      onClick={() => {
+                        setShowLineLink(true);
+                        fetchLineTargets();
+                      }}
+                      className="px-2 py-0.5 text-xs bg-green-50 text-green-700 rounded hover:bg-green-100"
+                    >
+                      LINE送信先を紐づけ
+                    </button>
+                  </>
+                )}
+              </dd>
+            </div>
+          </dl>
+
+          {showLineLink && (
+            <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="text-sm font-medium text-gray-700">
+                  LINE送信先一覧（未紐づけ）
+                </h4>
+                <div className="flex gap-1">
+                  {(["", "user", "group"] as const).map((t) => {
+                    const label = t === "" ? "すべて" : t === "user" ? "個人" : "グループ";
+                    return (
+                      <button
+                        key={t}
+                        onClick={() => {
+                          setLineTypeFilter(t);
+                          fetchLineTargets(t || undefined);
+                        }}
+                        className={`px-3 py-1 text-xs rounded ${
+                          lineTypeFilter === t
+                            ? "bg-[#1a1a2e] text-white"
+                            : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-100"
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              {lineTargets.length === 0 ? (
+                <p className="text-sm text-gray-500">
+                  紐づけ可能な送信先がありません。顧客に公式アカウントを友だち追加、またはグループに招待してもらってください。
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {lineTargets.map((t) => (
+                    <div
+                      key={t.id}
+                      className="flex items-center justify-between p-2 bg-white rounded border border-gray-200"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium ${
+                            t.type === "group"
+                              ? "bg-purple-100 text-purple-700"
+                              : "bg-blue-100 text-blue-700"
+                          }`}
+                        >
+                          {t.type === "group" ? "グループ" : "個人"}
+                        </span>
+                        <span className="text-sm font-medium">
+                          {t.displayName ?? "名前未取得"}
+                        </span>
+                        <span className="text-xs text-gray-400 font-mono">
+                          {t.lineId}
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => handleAssignLine(t.id)}
+                        disabled={isAssigning}
+                        className="px-3 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
+                      >
+                        {isAssigning ? "紐づけ中..." : "紐づける"}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <button
+                onClick={() => setShowLineLink(false)}
+                className="mt-2 text-sm text-gray-500 hover:text-gray-700"
+              >
+                閉じる
+              </button>
+            </div>
+          )}
+        </Card>
+      )}
+
+      <Card
+        title="登録サイト"
+        action={
+          <button
+            onClick={() => setShowSiteForm(!showSiteForm)}
+            className="px-3 py-1.5 text-sm bg-[#1a1a2e] text-white rounded-lg hover:bg-[#16213e]"
+          >
+            {showSiteForm ? "キャンセル" : "サイト追加"}
+          </button>
+        }
+      >
+        {showSiteForm && (
+          <form onSubmit={handleAddSite} className="mb-6 p-4 bg-gray-50 rounded-lg space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">サイト名 *</label>
+                <input
+                  type="text"
+                  value={siteFormData.siteName}
+                  onChange={(e) => setSiteFormData({ ...siteFormData, siteName: e.target.value })}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-[#1a1a2e]"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">サイトURL *</label>
+                <input
+                  type="url"
+                  value={siteFormData.siteUrl}
+                  onChange={(e) => setSiteFormData({ ...siteFormData, siteUrl: e.target.value })}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-[#1a1a2e]"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">GA4プロパティID *</label>
+                <input
+                  type="text"
+                  value={siteFormData.ga4PropertyId}
+                  onChange={(e) => setSiteFormData({ ...siteFormData, ga4PropertyId: e.target.value })}
+                  required
+                  placeholder="properties/123456789"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-[#1a1a2e]"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">レポート開始日 *</label>
+                <input
+                  type="date"
+                  value={siteFormData.reportStartDate}
+                  onChange={(e) => setSiteFormData({ ...siteFormData, reportStartDate: e.target.value })}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-[#1a1a2e]"
+                />
+              </div>
+            </div>
+            <div className="flex justify-end">
+              <button type="submit" className="px-6 py-2 bg-[#1a1a2e] text-white rounded-lg hover:bg-[#16213e]">
+                登録
+              </button>
+            </div>
+          </form>
+        )}
+
+        {client.sites.length === 0 ? (
+          <p className="text-gray-500 text-center py-4">サイトが登録されていません</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-100">
+                  <th className="text-left py-3 px-4 font-medium text-gray-600">サイト名</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-600">URL</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-600">GA4 ID</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-600">開始日</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-600">最新レポート</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-600">操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                {client.sites.map((site) => {
+                  const latestReport = site.reports[0];
+                  return (
+                    <tr key={site.id} className="border-b border-gray-50 hover:bg-gray-50 align-top">
+                      <td className="py-3 px-4 font-medium">{site.siteName}</td>
+                      <td className="py-3 px-4 text-blue-600">{site.siteUrl}</td>
+                      <td className="py-3 px-4 font-mono text-xs">{site.ga4PropertyId}</td>
+                      <td className="py-3 px-4">
+                        {new Date(site.reportStartDate).toLocaleDateString("ja-JP")}
+                      </td>
+                      <td className="py-3 px-4">
+                        {latestReport ? (
+                          <StatusBadge status={latestReport.status} />
+                        ) : (
+                          <span className="text-gray-400">-</span>
+                        )}
+                      </td>
+                      <td className="py-3 px-4">
+                        {reportFormSiteId === site.id ? (
+                          <div className="space-y-2 min-w-[240px]">
+                            <div className="flex flex-col gap-1">
+                              <label className="text-xs text-gray-500">開始日</label>
+                              <input
+                                type="date"
+                                value={reportRange.startDate}
+                                onChange={(e) => setReportRange({ ...reportRange, startDate: e.target.value })}
+                                className="px-2 py-1 text-sm border border-gray-300 rounded outline-none focus:ring-2 focus:ring-[#1a1a2e]"
+                              />
+                            </div>
+                            <div className="flex flex-col gap-1">
+                              <label className="text-xs text-gray-500">終了日</label>
+                              <input
+                                type="date"
+                                value={reportRange.endDate}
+                                onChange={(e) => setReportRange({ ...reportRange, endDate: e.target.value })}
+                                className="px-2 py-1 text-sm border border-gray-300 rounded outline-none focus:ring-2 focus:ring-[#1a1a2e]"
+                              />
+                            </div>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => handleGenerateReport(site.id)}
+                                disabled={isGenerating}
+                                className="px-3 py-1 text-sm bg-[#1a1a2e] text-white rounded hover:bg-[#16213e] disabled:opacity-50"
+                              >
+                                {isGenerating ? "生成中..." : "生成"}
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setReportFormSiteId(null);
+                                  setReportRange({ startDate: "", endDate: "" });
+                                }}
+                                className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
+                              >
+                                閉じる
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => setReportFormSiteId(site.id)}
+                            className="px-3 py-1.5 text-sm bg-[#1a1a2e] text-white rounded-lg hover:bg-[#16213e] whitespace-nowrap"
+                          >
+                            レポート生成
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
+    </div>
+  );
+}
