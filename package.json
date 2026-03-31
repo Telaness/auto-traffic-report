@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate --config prisma/prisma.config.ts && next build",
+    "postinstall": "prisma generate --config prisma/prisma.config.ts",
+    "build": "next build",
     "start": "next start",
     "lint": "eslint",
     "type-check": "tsc --noEmit",
