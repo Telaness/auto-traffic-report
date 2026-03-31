@@ -69,6 +69,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       const isLoggedIn = !!session?.user;
       const { pathname } = request.nextUrl;
 
+      // NextAuth APIは認証不要（認証処理自体のエンドポイント）
+      if (pathname.startsWith("/api/auth/")) {
+        return true;
+      }
+
       // Webhook は認証不要（LINE署名検証で保護）
       if (pathname.startsWith("/api/webhook/")) {
         return true;
