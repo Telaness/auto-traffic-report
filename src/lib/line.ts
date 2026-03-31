@@ -101,7 +101,7 @@ export const sendReportLineMessage = async (
                   type: "button",
                   action: {
                     type: "uri",
-                    label: "PDFをダウンロード",
+                    label: "レポートを確認する",
                     uri: reportUrl,
                   },
                   style: "primary",

@@ -1,19 +1,6 @@
-import chromium from "@sparticuz/chromium";
 import puppeteer from "puppeteer-core";
 
 const getBrowser = async () => {
-  const isVercel = !!process.env.VERCEL;
-
-  if (isVercel) {
-    return puppeteer.launch({
-      args: chromium.args,
-      defaultViewport: { width: 1280, height: 720 },
-      executablePath: await chromium.executablePath(),
-      headless: true,
-    });
-  }
-
-  // ローカル環境ではシステムのChromeを使用
   return puppeteer.launch({
     headless: true,
     args: ["--no-sandbox", "--disable-setuid-sandbox"],
