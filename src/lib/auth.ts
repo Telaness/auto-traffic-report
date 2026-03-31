@@ -79,6 +79,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         return true;
       }
 
+      // レポートPDFダウンロードは認証不要（トークンで保護）
+      if (/^\/api\/reports\/[^/]+\/pdf$/.test(pathname)) {
+        return true;
+      }
+
       // ログインページは未認証でもアクセス可
       if (pathname === "/login") {
         return true;

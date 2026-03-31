@@ -4,6 +4,7 @@ import { generateReportForSite, generateReportHtml } from "@/src/lib/report";
 import type { ReportData } from "@/src/lib/report";
 import { sendReportLineMessage } from "@/src/lib/line";
 import { sendReportEmail } from "@/src/lib/email";
+import { generateReportDownloadToken } from "@/src/lib/report-token";
 
 interface BatchResult {
   total: number;
@@ -42,6 +43,10 @@ const deliverReport = async (
 
   // LINE送信
   if ((channel === "line" || channel === "both") && client.lineUserId) {
+    const token = generateReportDownloadToken(reportId);
+    const baseUrl = process.env.NEXTAUTH_URL ?? "https://auto-traffic-report.vercel.app";
+    const pdfUrl = `${baseUrl}/api/reports/${reportId}/pdf?token=${token}`;
+
     await sendReportLineMessage(
       client.lineUserId,
       report.site.siteName,
@@ -51,7 +56,8 @@ const deliverReport = async (
         totalUsers: reportData.currentMonth.totalUsers,
         screenPageViews: reportData.currentMonth.screenPageViews,
         bounceRate: reportData.currentMonth.bounceRate,
-      }
+      },
+      pdfUrl
     );
 
     await prisma.deliveryLog.create({
