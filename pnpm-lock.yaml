@@ -44,6 +44,9 @@ importers:
       nodemailer:
         specifier: ^8.0.3
         version: 8.0.3
+      pg:
+        specifier: ^8.20.0
+        version: 8.20.0
       prisma:
         specifier: ^7.5.0
         version: 7.5.0(@types/react@19.2.14)(better-sqlite3@12.8.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3)
@@ -84,6 +87,9 @@ importers:
       '@types/nodemailer':
         specifier: ^7.0.11
         version: 7.0.11
+      '@types/pg':
+        specifier: ^8.20.0
+        version: 8.20.0
       '@types/react':
         specifier: ^19
         version: 19.2.14
