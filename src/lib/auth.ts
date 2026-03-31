@@ -11,25 +11,38 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         password: { label: "パスワード", type: "password" },
       },
       async authorize(credentials) {
-        const adminUser = process.env.ADMIN_USERNAME;
-        const adminPass = process.env.ADMIN_PASSWORD;
+        try {
+          const adminUser = process.env.ADMIN_USERNAME;
+          const adminPass = process.env.ADMIN_PASSWORD;
 
-        if (!adminUser || !adminPass) {
-          console.error("[Auth] ADMIN_USERNAME / ADMIN_PASSWORD が未設定です");
+          console.log("[Auth] ENV check:", {
+            hasAdminUser: !!adminUser,
+            hasAdminPass: !!adminPass,
+            inputUser: String(credentials?.username ?? ""),
+            match:
+              String(credentials?.username ?? "") === adminUser &&
+              String(credentials?.password ?? "") === adminPass,
+          });
+
+          if (!adminUser || !adminPass) {
+            return null;
+          }
+
+          if (
+            String(credentials?.username ?? "") === adminUser &&
+            String(credentials?.password ?? "") === adminPass
+          ) {
+            return {
+              id: "admin",
+              name: "管理者",
+            };
+          }
+
+          return null;
+        } catch (e) {
+          console.error("[Auth] authorize error:", e);
           return null;
         }
-
-        if (
-          credentials?.username === adminUser &&
-          credentials?.password === adminPass
-        ) {
-          return {
-            id: "admin",
-            name: "管理者",
-          };
-        }
-
-        return null;
       },
     }),
   ],
