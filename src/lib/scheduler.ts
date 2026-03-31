@@ -1,17 +1,85 @@
 import cron from "node-cron";
 import { prisma } from "@/src/lib/db";
-import { generateReportForSite } from "@/src/lib/report";
+import { generateReportForSite, generateReportHtml } from "@/src/lib/report";
+import type { ReportData } from "@/src/lib/report";
+import { sendReportLineMessage } from "@/src/lib/line";
+import { sendReportEmail } from "@/src/lib/email";
 
-export const runMonthlyBatch = async (): Promise<{
+interface BatchResult {
   total: number;
   success: number;
   failed: number;
   errors: Array<{ siteId: string; error: string }>;
-}> => {
+}
+
+const deliverReport = async (
+  reportId: string
+): Promise<void> => {
+  const report = await prisma.report.findUnique({
+    where: { id: reportId },
+    include: {
+      site: {
+        include: {
+          client: {
+            include: { monthlyBatchSubscription: true },
+          },
+        },
+      },
+    },
+  });
+
+  if (!report?.reportData || !report.site.client.monthlyBatchSubscription) return;
+
+  const { client } = report.site;
+  const subscription = client.monthlyBatchSubscription!;
+  const channel = subscription.deliveryChannel;
+  const reportData: ReportData = JSON.parse(report.reportData);
+
+  const period = reportData.period;
+  const startD = new Date(period.startDate);
+  const endD = new Date(period.endDate);
+  const reportMonth = `${startD.getFullYear()}年${startD.getMonth() + 1}月${startD.getDate()}日〜${endD.getFullYear()}年${endD.getMonth() + 1}月${endD.getDate()}日`;
+
+  // LINE送信
+  if ((channel === "line" || channel === "both") && client.lineUserId) {
+    await sendReportLineMessage(
+      client.lineUserId,
+      report.site.siteName,
+      reportMonth,
+      {
+        sessions: reportData.currentMonth.sessions,
+        totalUsers: reportData.currentMonth.totalUsers,
+        screenPageViews: reportData.currentMonth.screenPageViews,
+        bounceRate: reportData.currentMonth.bounceRate,
+      }
+    );
+
+    await prisma.deliveryLog.create({
+      data: { reportId, channel: "line", status: "success", sentAt: new Date() },
+    });
+  }
+
+  // メール送信
+  if ((channel === "email" || channel === "both") && client.contactEmail) {
+    const htmlContent = generateReportHtml(
+      report.site.siteName,
+      report.site.siteUrl,
+      report.reportMonth.toISOString(),
+      reportData
+    );
+
+    await sendReportEmail(client.contactEmail, report.site.siteName, reportMonth, htmlContent);
+
+    await prisma.deliveryLog.create({
+      data: { reportId, channel: "email", status: "success", sentAt: new Date() },
+    });
+  }
+};
+
+export const runMonthlyBatch = async (): Promise<BatchResult> => {
   const now = new Date();
   const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
-  // バッチ登録済み（isActive: true）のクライアントに紐づくアクティブサイトのみ取得
   const activeSites = await prisma.site.findMany({
     where: {
       isActive: true,
@@ -28,16 +96,54 @@ export const runMonthlyBatch = async (): Promise<{
     },
   });
 
-  const results = {
+  const results: BatchResult = {
     total: activeSites.length,
     success: 0,
     failed: 0,
-    errors: [] as Array<{ siteId: string; error: string }>,
+    errors: [],
   };
 
   for (const site of activeSites) {
     try {
-      await generateReportForSite(site.id, now);
+      const reportId = await generateReportForSite(site.id, now);
+      await deliverReport(reportId);
+      results.success++;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      results.failed++;
+      results.errors.push({ siteId: site.id, error: errorMessage });
+    }
+  }
+
+  return results;
+};
+
+export const runSingleBatch = async (subscriptionId: string): Promise<BatchResult> => {
+  const subscription = await prisma.monthlyBatchSubscription.findUnique({
+    where: { id: subscriptionId },
+    include: {
+      client: {
+        include: { sites: { where: { isActive: true } } },
+      },
+    },
+  });
+
+  if (!subscription) {
+    throw new Error("バッチ登録が見つかりません");
+  }
+
+  const now = new Date();
+  const results: BatchResult = {
+    total: subscription.client.sites.length,
+    success: 0,
+    failed: 0,
+    errors: [],
+  };
+
+  for (const site of subscription.client.sites) {
+    try {
+      const reportId = await generateReportForSite(site.id, now);
+      await deliverReport(reportId);
       results.success++;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);

@@ -33,6 +33,14 @@ interface PaginationData {
   total: number;
 }
 
+interface BatchTarget {
+  siteId: string;
+  siteName: string;
+  siteUrl: string;
+  clientName: string;
+  deliveryChannel: DeliveryChannel;
+}
+
 const channelLabels: Record<DeliveryChannel, string> = {
   email: "メール",
   line: "LINE",
@@ -57,6 +65,16 @@ export default function BatchPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isBatchRunning, setIsBatchRunning] = useState(false);
   const [testSendingId, setTestSendingId] = useState<string | null>(null);
+  const [singleRunningId, setSingleRunningId] = useState<string | null>(null);
+
+  // 一括バッチ確認ダイアログ
+  const [showBatchConfirm, setShowBatchConfirm] = useState(false);
+  const [batchTargets, setBatchTargets] = useState<BatchTarget[]>([]);
+  const [isFetchingTargets, setIsFetchingTargets] = useState(false);
+
+  // 個別送信ダイアログ
+  const [showSingleDialog, setShowSingleDialog] = useState(false);
+  const [selectedSubscriptionId, setSelectedSubscriptionId] = useState("");
 
   const fetchSubscriptions = useCallback(async (page = 1) => {
     setIsLoading(true);
@@ -70,17 +88,15 @@ export default function BatchPage() {
       setSubscriptions(data.subscriptions);
       setPagination(data.pagination);
     } catch (error) {
-      console.error("バッチ登録一覧���取得に���敗:", error);
+      console.error("バッチ登録一覧の取得に失敗:", error);
     } finally {
       setIsLoading(false);
     }
   }, []);
 
   const fetchAvailableClients = useCallback(async () => {
-    // 全クライアントを取得
     const res = await fetch("/api/clients?limit=1000");
     const data = await res.json();
-    // 既にバッチ登録済みのクライアントIDを除外
     const subscribedIds = new Set(subscriptions.map((s) => s.clientId));
     const filtered = (data.clients as ClientOption[]).filter(
       (c) => !subscribedIds.has(c.id)
@@ -161,15 +177,31 @@ export default function BatchPage() {
     }
   };
 
+  // 一括バッチ: 対象一覧取得 → 確認ダイアログ表示
+  const handleBatchConfirmOpen = async () => {
+    setIsFetchingTargets(true);
+    try {
+      const res = await fetch("/api/batch/targets");
+      const data = await res.json();
+      setBatchTargets(data.targets as BatchTarget[]);
+      setShowBatchConfirm(true);
+    } catch {
+      alert("対象一覧の取得に失敗しました");
+    } finally {
+      setIsFetchingTargets(false);
+    }
+  };
+
+  // 一括バッチ: 実行
   const handleBatchRun = async () => {
-    if (!confirm("月次バッチを手動実行しますか？")) return;
+    setShowBatchConfirm(false);
     setIsBatchRunning(true);
     try {
       const res = await fetch("/api/batch/run", { method: "POST" });
       const data = await res.json();
       if (res.ok) {
         alert(
-          `バッチ完了: 全${data.results.total}件, 成功${data.results.success}件, 失敗${data.results.failed}件`
+          `一括バッチ完了\n\n全${data.results.total}件\n成功: ${data.results.success}件\n失敗: ${data.results.failed}件`
         );
       } else {
         alert(`エラー: ${data.error}`);
@@ -178,6 +210,33 @@ export default function BatchPage() {
       alert("バッチ実行に失敗しました");
     } finally {
       setIsBatchRunning(false);
+    }
+  };
+
+  // 個別送信: 実行
+  const handleSingleRun = async () => {
+    if (!selectedSubscriptionId) return;
+    setShowSingleDialog(false);
+    setSingleRunningId(selectedSubscriptionId);
+    try {
+      const res = await fetch("/api/batch/run-single", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ subscriptionId: selectedSubscriptionId }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert(
+          `個別送信完了\n\n全${data.results.total}件\n成功: ${data.results.success}件\n失敗: ${data.results.failed}件`
+        );
+      } else {
+        alert(`エラー: ${data.error}`);
+      }
+    } catch {
+      alert("個別送信に失敗しました");
+    } finally {
+      setSingleRunningId(null);
+      setSelectedSubscriptionId("");
     }
   };
 
@@ -205,17 +264,29 @@ export default function BatchPage() {
     }
   };
 
+  const activeSubscriptions = subscriptions.filter((s) => s.isActive);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-gray-900">月次バッチ管理</h2>
         <div className="flex gap-2">
           <button
-            onClick={handleBatchRun}
-            disabled={isBatchRunning}
+            onClick={handleBatchConfirmOpen}
+            disabled={isBatchRunning || isFetchingTargets}
             className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
           >
-            {isBatchRunning ? "実行中..." : "バッチ実行"}
+            {isBatchRunning ? "実行中..." : isFetchingTargets ? "読込中..." : "一括バッチ実行"}
+          </button>
+          <button
+            onClick={() => {
+              setSelectedSubscriptionId("");
+              setShowSingleDialog(true);
+            }}
+            disabled={!!singleRunningId}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+          >
+            {singleRunningId ? "実行中..." : "個別送信"}
           </button>
           <button
             onClick={() => setShowForm(!showForm)}
@@ -225,6 +296,111 @@ export default function BatchPage() {
           </button>
         </div>
       </div>
+
+      {/* 一括バッチ確認ダイアログ */}
+      {showBatchConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full mx-4 max-h-[80vh] flex flex-col">
+            <div className="p-6 border-b border-gray-200">
+              <h3 className="text-lg font-bold text-gray-900">一括バッチ実行の確認</h3>
+              <p className="text-sm text-gray-500 mt-1">
+                以下の対象にレポートを生成・送信します。
+              </p>
+            </div>
+            <div className="p-6 overflow-y-auto flex-1">
+              {batchTargets.length === 0 ? (
+                <p className="text-center text-gray-500 py-4">
+                  送信対象がありません
+                </p>
+              ) : (
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-200">
+                      <th className="text-left py-2 px-3 font-medium text-gray-600">顧客名</th>
+                      <th className="text-left py-2 px-3 font-medium text-gray-600">サイト</th>
+                      <th className="text-left py-2 px-3 font-medium text-gray-600">送信方法</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {batchTargets.map((target) => (
+                      <tr key={target.siteId} className="border-b border-gray-50">
+                        <td className="py-2 px-3 font-medium">{target.clientName}</td>
+                        <td className="py-2 px-3">
+                          <div>{target.siteName}</div>
+                          <div className="text-xs text-gray-400">{target.siteUrl}</div>
+                        </td>
+                        <td className="py-2 px-3">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
+                            {channelLabels[target.deliveryChannel]}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+            <div className="p-4 border-t border-gray-200 flex justify-end gap-3">
+              <button
+                onClick={() => setShowBatchConfirm(false)}
+                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                キャンセル
+              </button>
+              <button
+                onClick={handleBatchRun}
+                disabled={batchTargets.length === 0}
+                className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
+              >
+                {batchTargets.length}件を実行
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 個別送信ダイアログ */}
+      {showSingleDialog && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full mx-4">
+            <div className="p-6 border-b border-gray-200">
+              <h3 className="text-lg font-bold text-gray-900">個別送信</h3>
+              <p className="text-sm text-gray-500 mt-1">
+                レポートを生成・送信する顧客を選択してください。
+              </p>
+            </div>
+            <div className="p-6">
+              <select
+                value={selectedSubscriptionId}
+                onChange={(e) => setSelectedSubscriptionId(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+              >
+                <option value="">顧客を選択</option>
+                {activeSubscriptions.map((sub) => (
+                  <option key={sub.id} value={sub.id}>
+                    {sub.client.name}（{channelLabels[sub.deliveryChannel]}）
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="p-4 border-t border-gray-200 flex justify-end gap-3">
+              <button
+                onClick={() => setShowSingleDialog(false)}
+                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                キャンセル
+              </button>
+              <button
+                onClick={handleSingleRun}
+                disabled={!selectedSubscriptionId}
+                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+              >
+                実行
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showForm && (
         <Card title="バッチ配信登録">
