@@ -10,14 +10,13 @@
     "type-check": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate dev",
-    "prisma:push": "prisma db push"
+    "prisma:generate": "prisma generate --config prisma/prisma.config.ts",
+    "prisma:migrate": "prisma migrate dev --config prisma/prisma.config.ts",
+    "prisma:push": "prisma db push --config prisma/prisma.config.ts"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
       "@prisma/engines",
-      "better-sqlite3",
       "prisma",
       "sharp",
       "unrs-resolver"
@@ -25,11 +24,8 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.80.0",
-    "@prisma/adapter-better-sqlite3": "^7.5.0",
     "@prisma/client": "^7.5.0",
-    "@prisma/client-runtime-utils": "^7.5.0",
     "archiver": "^7.0.1",
-    "better-sqlite3": "^12.8.0",
     "dotenv": "^17.3.1",
     "googleapis": "^171.4.0",
     "jspdf": "^4.2.1",
@@ -49,7 +45,6 @@
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@types/archiver": "^7.0.0",
-    "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^20",
     "@types/node-cron": "^3.0.11",
     "@types/nodemailer": "^7.0.11",
