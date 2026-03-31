@@ -76,6 +76,31 @@ export default function BatchPage() {
   const [showSingleDialog, setShowSingleDialog] = useState(false);
   const [selectedSubscriptionId, setSelectedSubscriptionId] = useState("");
 
+  // 期間指定（一括・個別共通）
+  type PeriodType = "lastMonth" | "month" | "custom";
+  const [periodType, setPeriodType] = useState<PeriodType>("lastMonth");
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  });
+  const [customStartDate, setCustomStartDate] = useState("");
+  const [customEndDate, setCustomEndDate] = useState("");
+
+  const getDateRange = (): { startDate: string; endDate: string } | undefined => {
+    if (periodType === "lastMonth") return undefined;
+    if (periodType === "month") {
+      const [year, month] = selectedMonth.split("-").map(Number);
+      const start = `${year}-${String(month).padStart(2, "0")}-01`;
+      const lastDay = new Date(year, month, 0).getDate();
+      const end = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+      return { startDate: start, endDate: end };
+    }
+    if (customStartDate && customEndDate) {
+      return { startDate: customStartDate, endDate: customEndDate };
+    }
+    return undefined;
+  };
+
   const fetchSubscriptions = useCallback(async (page = 1) => {
     setIsLoading(true);
     try {
@@ -179,6 +204,7 @@ export default function BatchPage() {
 
   // 一括バッチ: 対象一覧取得 → 確認ダイアログ表示
   const handleBatchConfirmOpen = async () => {
+    resetPeriod();
     setIsFetchingTargets(true);
     try {
       const res = await fetch("/api/batch/targets");
@@ -197,7 +223,12 @@ export default function BatchPage() {
     setShowBatchConfirm(false);
     setIsBatchRunning(true);
     try {
-      const res = await fetch("/api/batch/run", { method: "POST" });
+      const dateRange = getDateRange();
+      const res = await fetch("/api/batch/run", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(dateRange ?? {}),
+      });
       const data = await res.json();
       if (res.ok) {
         alert(
@@ -219,10 +250,14 @@ export default function BatchPage() {
     setShowSingleDialog(false);
     setSingleRunningId(selectedSubscriptionId);
     try {
+      const dateRange = getDateRange();
       const res = await fetch("/api/batch/run-single", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ subscriptionId: selectedSubscriptionId }),
+        body: JSON.stringify({
+          subscriptionId: selectedSubscriptionId,
+          ...dateRange,
+        }),
       });
       const data = await res.json();
       if (res.ok) {
@@ -266,6 +301,63 @@ export default function BatchPage() {
 
   const activeSubscriptions = subscriptions.filter((s) => s.isActive);
 
+  const resetPeriod = () => {
+    setPeriodType("lastMonth");
+    setCustomStartDate("");
+    setCustomEndDate("");
+  };
+
+  const periodSelector = (
+    <div className="space-y-3">
+      <label className="block text-sm font-medium text-gray-700">レポート期間</label>
+      <div className="flex gap-2">
+        {(["lastMonth", "month", "custom"] as const).map((type) => (
+          <button
+            key={type}
+            onClick={() => setPeriodType(type)}
+            className={`px-3 py-1.5 text-sm rounded-lg border transition-colors ${
+              periodType === type
+                ? "bg-[#1a1a2e] text-white border-[#1a1a2e]"
+                : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+            }`}
+          >
+            {type === "lastMonth" ? "先月" : type === "month" ? "月指定" : "日付指定"}
+          </button>
+        ))}
+      </div>
+      {periodType === "month" && (
+        <input
+          type="month"
+          value={selectedMonth}
+          onChange={(e) => setSelectedMonth(e.target.value)}
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1a1a2e] focus:border-transparent outline-none"
+        />
+      )}
+      {periodType === "custom" && (
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">開始日</label>
+            <input
+              type="date"
+              value={customStartDate}
+              onChange={(e) => setCustomStartDate(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1a1a2e] focus:border-transparent outline-none"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">終了日</label>
+            <input
+              type="date"
+              value={customEndDate}
+              onChange={(e) => setCustomEndDate(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1a1a2e] focus:border-transparent outline-none"
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -281,6 +373,7 @@ export default function BatchPage() {
           <button
             onClick={() => {
               setSelectedSubscriptionId("");
+              resetPeriod();
               setShowSingleDialog(true);
             }}
             disabled={!!singleRunningId}
@@ -307,7 +400,8 @@ export default function BatchPage() {
                 以下の対象にレポートを生成・送信します。
               </p>
             </div>
-            <div className="p-6 overflow-y-auto flex-1">
+            <div className="p-6 overflow-y-auto flex-1 space-y-4">
+              {periodSelector}
               {batchTargets.length === 0 ? (
                 <p className="text-center text-gray-500 py-4">
                   送信対象がありません
@@ -369,19 +463,23 @@ export default function BatchPage() {
                 レポートを生成・送信する顧客を選択してください。
               </p>
             </div>
-            <div className="p-6">
-              <select
-                value={selectedSubscriptionId}
-                onChange={(e) => setSelectedSubscriptionId(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-              >
-                <option value="">顧客を選択</option>
-                {activeSubscriptions.map((sub) => (
-                  <option key={sub.id} value={sub.id}>
-                    {sub.client.name}（{channelLabels[sub.deliveryChannel]}）
-                  </option>
-                ))}
-              </select>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">顧客</label>
+                <select
+                  value={selectedSubscriptionId}
+                  onChange={(e) => setSelectedSubscriptionId(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                >
+                  <option value="">顧客を選択</option>
+                  {activeSubscriptions.map((sub) => (
+                    <option key={sub.id} value={sub.id}>
+                      {sub.client.name}（{channelLabels[sub.deliveryChannel]}）
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {periodSelector}
             </div>
             <div className="p-4 border-t border-gray-200 flex justify-end gap-3">
               <button

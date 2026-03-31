@@ -124,7 +124,15 @@ export const runMonthlyBatch = async (): Promise<BatchResult> => {
   return results;
 };
 
-export const runSingleBatch = async (subscriptionId: string): Promise<BatchResult> => {
+interface CustomRange {
+  startDate: string;
+  endDate: string;
+}
+
+export const runSingleBatch = async (
+  subscriptionId: string,
+  customRange?: CustomRange
+): Promise<BatchResult> => {
   const subscription = await prisma.monthlyBatchSubscription.findUnique({
     where: { id: subscriptionId },
     include: {
@@ -148,7 +156,49 @@ export const runSingleBatch = async (subscriptionId: string): Promise<BatchResul
 
   for (const site of subscription.client.sites) {
     try {
-      const reportId = await generateReportForSite(site.id, now);
+      const reportId = await generateReportForSite(site.id, now, customRange);
+      await deliverReport(reportId);
+      results.success++;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      results.failed++;
+      results.errors.push({ siteId: site.id, error: errorMessage });
+    }
+  }
+
+  return results;
+};
+
+export const runMonthlyBatchWithRange = async (customRange?: CustomRange): Promise<BatchResult> => {
+  const now = new Date();
+  const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+  const activeSites = await prisma.site.findMany({
+    where: {
+      isActive: true,
+      reportStartDate: { lte: currentMonthStart },
+      client: {
+        isActive: true,
+        monthlyBatchSubscription: { isActive: true },
+      },
+    },
+    include: {
+      client: {
+        include: { monthlyBatchSubscription: true },
+      },
+    },
+  });
+
+  const results: BatchResult = {
+    total: activeSites.length,
+    success: 0,
+    failed: 0,
+    errors: [],
+  };
+
+  for (const site of activeSites) {
+    try {
+      const reportId = await generateReportForSite(site.id, now, customRange);
       await deliverReport(reportId);
       results.success++;
     } catch (error) {

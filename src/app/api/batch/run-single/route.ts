@@ -2,10 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { runSingleBatch } from "@/src/lib/scheduler";
 import { apiServerError } from "@/src/lib/api-response";
 
+export const maxDuration = 60;
+
 export const POST = async (request: NextRequest) => {
   try {
     const body = await request.json();
-    const { subscriptionId } = body as { subscriptionId: string };
+    const { subscriptionId, startDate, endDate } = body as {
+      subscriptionId: string;
+      startDate?: string;
+      endDate?: string;
+    };
 
     if (!subscriptionId) {
       return NextResponse.json(
@@ -14,7 +20,8 @@ export const POST = async (request: NextRequest) => {
       );
     }
 
-    const results = await runSingleBatch(subscriptionId);
+    const customRange = startDate && endDate ? { startDate, endDate } : undefined;
+    const results = await runSingleBatch(subscriptionId, customRange);
     return NextResponse.json({
       message: "個別バッチ処理が完了しました",
       results,

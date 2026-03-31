@@ -1,10 +1,19 @@
-import { NextResponse } from "next/server";
-import { runMonthlyBatch } from "@/src/lib/scheduler";
+import { NextRequest, NextResponse } from "next/server";
+import { runMonthlyBatchWithRange } from "@/src/lib/scheduler";
 import { apiServerError } from "@/src/lib/api-response";
 
-export const POST = async () => {
+export const maxDuration = 120;
+
+export const POST = async (request: NextRequest) => {
   try {
-    const results = await runMonthlyBatch();
+    const body = await request.json();
+    const { startDate, endDate } = body as {
+      startDate?: string;
+      endDate?: string;
+    };
+
+    const customRange = startDate && endDate ? { startDate, endDate } : undefined;
+    const results = await runMonthlyBatchWithRange(customRange);
     return NextResponse.json({
       message: "バッチ処理が完了しました",
       results,
