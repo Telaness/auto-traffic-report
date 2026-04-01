@@ -18,12 +18,43 @@ const optionalEnvVars = [
   "ADMIN_EMAIL",
 ] as const;
 
+const validatePasswordStrength = (password: string): string[] => {
+  const issues: string[] = [];
+
+  if (password.length < 12) {
+    issues.push("12文字以上にしてください");
+  }
+  if (!/[A-Z]/.test(password)) {
+    issues.push("大文字を含めてください");
+  }
+  if (!/[a-z]/.test(password)) {
+    issues.push("小文字を含めてください");
+  }
+  if (!/[0-9]/.test(password)) {
+    issues.push("数字を含めてください");
+  }
+  if (!/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password)) {
+    issues.push("記号を含めてください");
+  }
+
+  return issues;
+};
+
 export const validateEnv = () => {
   const missing = requiredEnvVars.filter((key) => !process.env[key]);
 
   if (missing.length > 0) {
     throw new Error(
       `必須環境変数が未設定です: ${missing.join(", ")}`
+    );
+  }
+
+  // パスワード強度チェック
+  const password = process.env.ADMIN_PASSWORD!;
+  const passwordIssues = validatePasswordStrength(password);
+  if (passwordIssues.length > 0) {
+    console.warn(
+      `[Security] ADMIN_PASSWORD の強度が不十分です:\n${passwordIssues.map((i) => `  - ${i}`).join("\n")}`
     );
   }
 

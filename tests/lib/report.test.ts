@@ -93,12 +93,12 @@ describe("generateReportHtml", () => {
 
     expect(html).toContain("Webサイトトラフィック分析レポート");
     expect(html).toContain("テストサイト");
-    expect(html).toContain("https://example.com");
+    expect(html).not.toContain("https://example.com");
     expect(html).toContain("エグゼクティブサマリー");
     expect(html).toContain("トラフィック概要と推移");
     expect(html).toContain("ユーザー属性・地域分析");
     expect(html).toContain("流入経路・デバイス分析");
-    expect(html).toContain("auto-traffic-report");
+    expect(html).toContain("Telaness .Inc");
     expect(html).toContain("検索パフォーマンス");
     expect(html).toContain("テストサイト");
   });

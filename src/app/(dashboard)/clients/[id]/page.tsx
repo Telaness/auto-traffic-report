@@ -38,6 +38,7 @@ interface ClientDetail {
   deliveryChannel: "email" | "line" | "both";
   isActive: boolean;
   sites: Site[];
+  lineTargets: LineTarget[];
 }
 
 const channelLabels: Record<string, string> = {
@@ -68,6 +69,10 @@ export default function ClientDetailPage() {
     reportStartDate: "",
   });
   const [showLineLink, setShowLineLink] = useState(false);
+  const [showManualRegister, setShowManualRegister] = useState(false);
+  const [manualLineId, setManualLineId] = useState("");
+  const [manualLineType, setManualLineType] = useState<"user" | "group">("group");
+  const [isRegistering, setIsRegistering] = useState(false);
   const [lineTargets, setLineTargets] = useState<LineTarget[]>([]);
   const [lineTypeFilter, setLineTypeFilter] = useState<"" | "user" | "group">("");
   const [isAssigning, setIsAssigning] = useState(false);
@@ -152,6 +157,51 @@ export default function ClientDetailPage() {
       console.error("LINE送信先の取得に失敗");
     }
   }, []);
+
+  const handleManualRegister = async () => {
+    if (!manualLineId.trim()) return;
+    setIsRegistering(true);
+    try {
+      const res = await fetch("/api/line-followers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          lineId: manualLineId.trim(),
+          type: manualLineType,
+          clientId: params.id,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setManualLineId("");
+        setShowManualRegister(false);
+        fetchClient();
+      } else {
+        alert(`エラー: ${data.error}`);
+      }
+    } catch {
+      alert("登録に失敗しました");
+    } finally {
+      setIsRegistering(false);
+    }
+  };
+
+  const handleUnassignLine = async (targetId: string) => {
+    if (!confirm("このLINE送信先の紐づけを解除しますか？")) return;
+    try {
+      const res = await fetch(`/api/line-followers/${targetId}/assign`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        fetchClient();
+      } else {
+        const data = await res.json();
+        alert(`エラー: ${data.error}`);
+      }
+    } catch {
+      alert("紐づけ解除に失敗しました");
+    }
+  };
 
   const handleAssignLine = async (targetId: string) => {
     setIsAssigning(true);
@@ -309,24 +359,98 @@ export default function ClientDetailPage() {
               <dt className="text-sm text-gray-500">メールアドレス</dt>
               <dd className="mt-1">{client.contactEmail ?? "-"}</dd>
             </div>
-            <div>
-              <dt className="text-sm text-gray-500">LINE ユーザーID</dt>
-              <dd className="mt-1 flex items-center gap-2">
-                {client.lineUserId ? (
-                  <span className="font-mono text-xs">{client.lineUserId}</span>
-                ) : (
-                  <>
-                    <span className="text-gray-400">未設定</span>
+            <div className="md:col-span-2">
+              <dt className="text-sm text-gray-500 flex items-center gap-2">
+                LINE送信先
+                <button
+                  onClick={() => {
+                    setShowLineLink(true);
+                    fetchLineTargets();
+                  }}
+                  className="px-2 py-0.5 text-xs bg-green-50 text-green-700 rounded hover:bg-green-100"
+                >
+                  追加
+                </button>
+                <button
+                  onClick={() => setShowManualRegister(!showManualRegister)}
+                  className="px-2 py-0.5 text-xs bg-blue-50 text-blue-700 rounded hover:bg-blue-100"
+                >
+                  {showManualRegister ? "閉じる" : "手動登録"}
+                </button>
+              </dt>
+              {showManualRegister && (
+                <div className="mt-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                  <p className="text-xs text-gray-600 mb-2">
+                    LINE IDを直接入力して登録します。登録時にLINE APIから名前を自動取得します。
+                  </p>
+                  <div className="flex gap-2 items-end">
+                    <div className="flex-1">
+                      <label className="block text-xs text-gray-500 mb-1">LINE ID</label>
+                      <input
+                        type="text"
+                        value={manualLineId}
+                        onChange={(e) => setManualLineId(e.target.value)}
+                        placeholder="C1234abcd..."
+                        className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">種別</label>
+                      <select
+                        value={manualLineType}
+                        onChange={(e) => setManualLineType(e.target.value as "user" | "group")}
+                        className="px-3 py-1.5 text-sm border border-gray-300 rounded outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="group">グループ</option>
+                        <option value="user">個人</option>
+                      </select>
+                    </div>
                     <button
-                      onClick={() => {
-                        setShowLineLink(true);
-                        fetchLineTargets();
-                      }}
-                      className="px-2 py-0.5 text-xs bg-green-50 text-green-700 rounded hover:bg-green-100"
+                      onClick={handleManualRegister}
+                      disabled={!manualLineId.trim() || isRegistering}
+                      className="px-4 py-1.5 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 whitespace-nowrap"
                     >
-                      LINE送信先を紐づけ
+                      {isRegistering ? "登録中..." : "登録"}
                     </button>
-                  </>
+                  </div>
+                </div>
+              )}
+              <dd className="mt-2">
+                {client.lineTargets.length === 0 ? (
+                  <span className="text-gray-400">未設定</span>
+                ) : (
+                  <div className="space-y-2">
+                    {client.lineTargets.map((t) => (
+                      <div
+                        key={t.id}
+                        className="flex items-center justify-between p-2 bg-gray-50 rounded border border-gray-200"
+                      >
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium ${
+                              t.type === "group"
+                                ? "bg-purple-100 text-purple-700"
+                                : "bg-blue-100 text-blue-700"
+                            }`}
+                          >
+                            {t.type === "group" ? "グループ" : "個人"}
+                          </span>
+                          <span className="text-sm font-medium">
+                            {t.displayName ?? "名前未取得"}
+                          </span>
+                          <span className="text-xs text-gray-400 font-mono">
+                            {t.lineId}
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => handleUnassignLine(t.id)}
+                          className="px-2 py-1 text-xs bg-red-50 text-red-700 rounded hover:bg-red-100"
+                        >
+                          解除
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </dd>
             </div>
@@ -362,7 +486,7 @@ export default function ClientDetailPage() {
               </div>
               {lineTargets.length === 0 ? (
                 <p className="text-sm text-gray-500">
-                  紐づけ可能な送信先がありません。顧客に公式アカウントを友だち追加、またはグループに招待してもらってください。
+                  紐づけ可能な送信先がありません。公式アカウントを友だち追加、またはグループに招待してもらってください。
                 </p>
               ) : (
                 <div className="space-y-2">

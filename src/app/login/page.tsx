@@ -19,6 +19,7 @@ function LoginForm() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isLocked, setIsLocked] = useState(false);
 
   const callbackUrl = searchParams.get("callbackUrl") ?? "/dashboard";
 
@@ -35,6 +36,24 @@ function LoginForm() {
       });
 
       if (result?.error) {
+        const errorMsg = result.error;
+
+        // レート制限エラー
+        if (errorMsg.includes("RATE_LIMITED")) {
+          const seconds = parseInt(errorMsg.split(":")[1] ?? "900", 10);
+          const minutes = Math.ceil(seconds / 60);
+          setError(`ログイン試行回数の上限に達しました。${minutes}分後に再試行してください。`);
+          setIsLocked(true);
+          return;
+        }
+
+        // 残り試行回数エラー
+        if (errorMsg.includes("ATTEMPTS_REMAINING")) {
+          const remaining = parseInt(errorMsg.split(":")[1] ?? "0", 10);
+          setError(`ユーザー名またはパスワードが正しくありません（残り${remaining}回）`);
+          return;
+        }
+
         setError("ユーザー名またはパスワードが正しくありません");
       } else {
         router.push(callbackUrl);
@@ -58,7 +77,11 @@ function LoginForm() {
 
           <form onSubmit={handleSubmit} className="space-y-5">
             {error && (
-              <div className="p-3 bg-red-50 text-red-700 rounded-lg text-sm">
+              <div className={`p-3 rounded-lg text-sm ${
+                isLocked
+                  ? "bg-red-100 text-red-800 border border-red-200"
+                  : "bg-red-50 text-red-700"
+              }`}>
                 {error}
               </div>
             )}
@@ -72,8 +95,9 @@ function LoginForm() {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 required
+                disabled={isLocked}
                 autoComplete="username"
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1a1a2e] focus:border-transparent outline-none"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1a1a2e] focus:border-transparent outline-none disabled:bg-gray-100 disabled:text-gray-400"
               />
             </div>
 
@@ -86,17 +110,18 @@ function LoginForm() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                disabled={isLocked}
                 autoComplete="current-password"
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1a1a2e] focus:border-transparent outline-none"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1a1a2e] focus:border-transparent outline-none disabled:bg-gray-100 disabled:text-gray-400"
               />
             </div>
 
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={isLoading || isLocked}
               className="w-full py-2.5 bg-[#1a1a2e] text-white rounded-lg hover:bg-[#16213e] transition-colors disabled:opacity-50 font-medium"
             >
-              {isLoading ? "ログイン中..." : "ログイン"}
+              {isLocked ? "ロック中" : isLoading ? "ログイン中..." : "ログイン"}
             </button>
           </form>
         </div>

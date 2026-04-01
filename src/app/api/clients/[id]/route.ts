@@ -19,6 +19,10 @@ export const GET = async (_request: NextRequest, { params }: RouteParams) => {
         },
       },
       monthlyBatchSubscription: true,
+      lineTargets: {
+        where: { isActive: true },
+        orderBy: { joinedAt: "desc" },
+      },
     },
   });
 

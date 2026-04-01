@@ -11,6 +11,7 @@ interface Subscription {
   clientId: string;
   deliveryChannel: DeliveryChannel;
   isActive: boolean;
+  excludeFromBatch: boolean;
   createdAt: string;
   client: {
     id: string;
@@ -75,6 +76,11 @@ export default function BatchPage() {
   // 個別送信ダイアログ
   const [showSingleDialog, setShowSingleDialog] = useState(false);
   const [selectedSubscriptionId, setSelectedSubscriptionId] = useState("");
+
+  // PDF取得ダイアログ
+  const [showPdfDialog, setShowPdfDialog] = useState(false);
+  const [pdfClientId, setPdfClientId] = useState("");
+  const [isPdfDownloading, setIsPdfDownloading] = useState(false);
 
   // 期間指定（一括・個別共通）
   type PeriodType = "lastMonth" | "month" | "custom";
@@ -183,6 +189,18 @@ export default function BatchPage() {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ isActive: !sub.isActive }),
+    });
+
+    if (res.ok) {
+      fetchSubscriptions(pagination.page);
+    }
+  };
+
+  const handleToggleExcludeFromBatch = async (sub: Subscription) => {
+    const res = await fetch(`/api/batch/subscriptions/${sub.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ excludeFromBatch: !sub.excludeFromBatch }),
     });
 
     if (res.ok) {
@@ -299,6 +317,46 @@ export default function BatchPage() {
     }
   };
 
+  // PDF取得: 実行
+  const handlePdfDownload = async () => {
+    if (!pdfClientId) return;
+    setIsPdfDownloading(true);
+    try {
+      const dateRange = getDateRange();
+      const res = await fetch("/api/reports/download", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          clientId: pdfClientId,
+          ...dateRange,
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        alert(data.error ?? "ダウンロードに失敗しました");
+        return;
+      }
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const disposition = res.headers.get("Content-Disposition");
+      const fileNameMatch = disposition?.match(/filename\*=UTF-8''(.+)/);
+      a.download = fileNameMatch ? decodeURIComponent(fileNameMatch[1]) : "レポート.pdf";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      setShowPdfDialog(false);
+    } catch {
+      alert("ダウンロードに失敗しました");
+    } finally {
+      setIsPdfDownloading(false);
+    }
+  };
+
   const activeSubscriptions = subscriptions.filter((s) => s.isActive);
 
   const resetPeriod = () => {
@@ -363,6 +421,17 @@ export default function BatchPage() {
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-gray-900">月次バッチ管理</h2>
         <div className="flex gap-2">
+          <button
+            onClick={() => {
+              setPdfClientId("");
+              resetPeriod();
+              setShowPdfDialog(true);
+            }}
+            disabled={isPdfDownloading}
+            className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50"
+          >
+            {isPdfDownloading ? "ダウンロード中..." : "PDF取得"}
+          </button>
           <button
             onClick={handleBatchConfirmOpen}
             disabled={isBatchRunning || isFetchingTargets}
@@ -500,6 +569,53 @@ export default function BatchPage() {
         </div>
       )}
 
+      {/* PDF取得ダイアログ */}
+      {showPdfDialog && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full mx-4">
+            <div className="p-6 border-b border-gray-200">
+              <h3 className="text-lg font-bold text-gray-900">レポートPDF取得</h3>
+              <p className="text-sm text-gray-500 mt-1">
+                クライアントと期間を選択してPDFをダウンロードします。
+              </p>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">クライアント</label>
+                <select
+                  value={pdfClientId}
+                  onChange={(e) => setPdfClientId(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none"
+                >
+                  <option value="">クライアントを選択</option>
+                  {subscriptions.map((sub) => (
+                    <option key={sub.id} value={sub.client.id}>
+                      {sub.client.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {periodSelector}
+            </div>
+            <div className="p-4 border-t border-gray-200 flex justify-end gap-3">
+              <button
+                onClick={() => setShowPdfDialog(false)}
+                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                キャンセル
+              </button>
+              <button
+                onClick={handlePdfDownload}
+                disabled={!pdfClientId || isPdfDownloading}
+                className="px-6 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50"
+              >
+                {isPdfDownloading ? "ダウンロード中..." : "ダウンロード"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showForm && (
         <Card title="バッチ配信登録">
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -579,6 +695,9 @@ export default function BatchPage() {
                       ステータス
                     </th>
                     <th className="text-left py-3 px-4 font-medium text-gray-600">
+                      一括除外
+                    </th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-600">
                       登録日
                     </th>
                     <th className="text-left py-3 px-4 font-medium text-gray-600">
@@ -624,6 +743,18 @@ export default function BatchPage() {
                         >
                           {sub.isActive ? "有効" : "無効"}
                         </span>
+                      </td>
+                      <td className="py-3 px-4">
+                        <button
+                          onClick={() => handleToggleExcludeFromBatch(sub)}
+                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium cursor-pointer transition-colors ${
+                            sub.excludeFromBatch
+                              ? "bg-orange-100 text-orange-800 hover:bg-orange-200"
+                              : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                          }`}
+                        >
+                          {sub.excludeFromBatch ? "除外中" : "対象"}
+                        </button>
                       </td>
                       <td className="py-3 px-4">
                         {new Date(sub.createdAt).toLocaleDateString("ja-JP")}

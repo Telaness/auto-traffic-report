@@ -15,6 +15,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "オトレポ - auto-reportsHP",
   description: "HP月次トラフィックレポート自動生成・配信システム",
+  icons: {
+    icon: "/fav.png",
+  },
 };
 
 export default function RootLayout({

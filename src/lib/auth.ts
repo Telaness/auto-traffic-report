@@ -1,5 +1,6 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
+import { checkRateLimit, recordFailedAttempt, resetAttempts } from "@/src/lib/rate-limit";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   trustHost: true,
@@ -10,39 +11,44 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         username: { label: "ユーザー名", type: "text" },
         password: { label: "パスワード", type: "password" },
       },
-      async authorize(credentials) {
-        try {
-          const adminUser = process.env.ADMIN_USERNAME;
-          const adminPass = process.env.ADMIN_PASSWORD;
+      async authorize(credentials, request) {
+        const forwarded = request?.headers?.get?.("x-forwarded-for");
+        const ip = typeof forwarded === "string" ? forwarded.split(",")[0].trim() : "unknown";
+        const username = String(credentials?.username ?? "");
+        const identifier = `${ip}:${username}`;
 
-          console.log("[Auth] ENV check:", {
-            hasAdminUser: !!adminUser,
-            hasAdminPass: !!adminPass,
-            inputUser: String(credentials?.username ?? ""),
-            match:
-              String(credentials?.username ?? "") === adminUser &&
-              String(credentials?.password ?? "") === adminPass,
-          });
+        // レート制限チェック
+        const rateLimit = checkRateLimit(identifier);
+        if (!rateLimit.allowed) {
+          console.warn(`[Auth] ロックアウト中: IP=${ip}`);
+          throw new Error(`RATE_LIMITED:${rateLimit.retryAfterSeconds}`);
+        }
 
-          if (!adminUser || !adminPass) {
-            return null;
-          }
+        const adminUser = process.env.ADMIN_USERNAME;
+        const adminPass = process.env.ADMIN_PASSWORD;
 
-          if (
-            String(credentials?.username ?? "") === adminUser &&
-            String(credentials?.password ?? "") === adminPass
-          ) {
-            return {
-              id: "admin",
-              name: "管理者",
-            };
-          }
-
-          return null;
-        } catch (e) {
-          console.error("[Auth] authorize error:", e);
+        if (!adminUser || !adminPass) {
           return null;
         }
+
+        if (username === adminUser && String(credentials?.password ?? "") === adminPass) {
+          resetAttempts(identifier);
+          console.log("[Auth] ログイン成功");
+          return {
+            id: "admin",
+            name: "管理者",
+          };
+        }
+
+        recordFailedAttempt(identifier);
+        const afterFail = checkRateLimit(identifier);
+        console.warn(`[Auth] ログイン失敗: IP=${ip}, 残り試行回数=${afterFail.remainingAttempts}`);
+
+        if (afterFail.remainingAttempts > 0) {
+          throw new Error(`ATTEMPTS_REMAINING:${afterFail.remainingAttempts}`);
+        }
+
+        throw new Error(`RATE_LIMITED:${Math.ceil(15 * 60)}`);
       },
     }),
   ],

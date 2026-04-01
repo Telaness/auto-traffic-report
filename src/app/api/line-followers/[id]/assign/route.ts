@@ -27,17 +27,45 @@ export const POST = async (request: NextRequest, { params }: RouteParams) => {
       );
     }
 
-    const client = await prisma.client.update({
+    const client = await prisma.client.findUnique({
       where: { id: clientId },
-      data: { lineUserId: target.lineId },
+    });
+
+    if (!client) {
+      return NextResponse.json(
+        { error: "クライアントが見つかりません" },
+        { status: 404 }
+      );
+    }
+
+    await prisma.lineTarget.update({
+      where: { id },
+      data: { clientId },
     });
 
     return NextResponse.json({
       message: `${client.name}にLINE送信先を紐づけました`,
-      client,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "紐づけに失敗しました";
     return NextResponse.json({ error: message }, { status: 500 });
+  }
+};
+
+export const DELETE = async (_request: NextRequest, { params }: RouteParams) => {
+  try {
+    const { id } = await params;
+
+    await prisma.lineTarget.update({
+      where: { id },
+      data: { clientId: null },
+    });
+
+    return NextResponse.json({ message: "LINE送信先の紐づけを解除しました" });
+  } catch {
+    return NextResponse.json(
+      { error: "紐づけ解除に失敗しました" },
+      { status: 500 }
+    );
   }
 };

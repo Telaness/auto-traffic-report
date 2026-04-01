@@ -18,7 +18,13 @@ export const POST = async (request: NextRequest) => {
 
     const subscription = await prisma.monthlyBatchSubscription.findUnique({
       where: { id: subscriptionId },
-      include: { client: true },
+      include: {
+        client: {
+          include: {
+            lineTargets: { where: { isActive: true } },
+          },
+        },
+      },
     });
 
     if (!subscription) {
@@ -29,7 +35,7 @@ export const POST = async (request: NextRequest) => {
     }
 
     const { client, deliveryChannel } = subscription;
-    const results: Array<{ channel: string; status: "success" | "failed"; error?: string }> = [];
+    const results: Array<{ channel: string; target?: string; status: "success" | "failed"; error?: string }> = [];
 
     // メール送信テスト
     if (deliveryChannel === "email" || deliveryChannel === "both") {
@@ -46,7 +52,7 @@ export const POST = async (request: NextRequest) => {
             subject: `【テスト送信】月次トラフィックレポート - ${client.name}`,
             html: `
               <h2>テスト送信</h2>
-              <p>これはオトレポからのテスト送信です。</p>
+              <p>これはテスト送信です。</p>
               <p>このメールが届いていれば、${client.name}様への月次レポートのメール配信は正常に動作しています。</p>
               <hr>
               <p style="color: #999; font-size: 12px;">※ このメールはテスト送信です。実際のレポートは含まれていません。</p>
@@ -60,26 +66,44 @@ export const POST = async (request: NextRequest) => {
       }
     }
 
-    // LINE送信テスト
+    // LINE送信テスト（全紐付け先に送信）
     if (deliveryChannel === "line" || deliveryChannel === "both") {
-      if (!client.lineUserId) {
+      const lineTargets = client.lineTargets;
+      // lineTargetsが未設定の場合、後方互換でlineUserIdを使用
+      if (lineTargets.length === 0 && client.lineUserId) {
+        lineTargets.push({
+          id: "",
+          lineId: client.lineUserId,
+          type: "user",
+          displayName: null,
+          clientId: client.id,
+          isActive: true,
+          joinedAt: new Date(),
+          createdAt: new Date(),
+        });
+      }
+
+      if (lineTargets.length === 0) {
         results.push({
           channel: "line",
           status: "failed",
-          error: "クライアントにLINEユーザーIDが設定されていません",
+          error: "クライアントにLINE送信先が紐づけられていません",
         });
       } else {
-        try {
-          await sendLineMessage(client.lineUserId, [
-            {
-              type: "text",
-              text: `【テスト送信】\nこれはオトレポからのテスト送信です。\nこのメッセージが届いていれば、${client.name}様へのLINE配信は正常に動作しています。`,
-            },
-          ]);
-          results.push({ channel: "line", status: "success" });
-        } catch (error) {
-          const message = error instanceof Error ? error.message : String(error);
-          results.push({ channel: "line", status: "failed", error: message });
+        for (const target of lineTargets) {
+          const label = target.displayName ?? target.lineId;
+          try {
+            await sendLineMessage(target.lineId, [
+              {
+                type: "text",
+                text: `【テスト送信】\nこれはテスト送信です。\nこのメッセージが届いていれば、${client.name}様へのLINE配信は正常に動作しています。\n\n送信先: ${label}`,
+              },
+            ]);
+            results.push({ channel: "line", target: label, status: "success" });
+          } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            results.push({ channel: "line", target: label, status: "failed", error: message });
+          }
         }
       }
     }

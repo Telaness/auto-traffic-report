@@ -13,7 +13,7 @@ export const GET = async () => {
         reportStartDate: { lte: currentMonthStart },
         client: {
           isActive: true,
-          monthlyBatchSubscription: { isActive: true },
+          monthlyBatchSubscription: { isActive: true, excludeFromBatch: false },
         },
       },
       include: {

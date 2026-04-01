@@ -22,7 +22,10 @@ const deliverReport = async (
       site: {
         include: {
           client: {
-            include: { monthlyBatchSubscription: true },
+            include: {
+              monthlyBatchSubscription: true,
+              lineTargets: { where: { isActive: true } },
+            },
           },
         },
       },
@@ -41,28 +44,36 @@ const deliverReport = async (
   const endD = new Date(period.endDate);
   const reportMonth = `${startD.getFullYear()}年${startD.getMonth() + 1}月${startD.getDate()}日〜${endD.getFullYear()}年${endD.getMonth() + 1}月${endD.getDate()}日`;
 
-  // LINE送信
-  if ((channel === "line" || channel === "both") && client.lineUserId) {
+  // LINE送信（紐付けされた全送信先に送信）
+  if (channel === "line" || channel === "both") {
+    const lineIds = client.lineTargets.map((t) => t.lineId);
+    // lineTargetsが未設定の場合、後方互換でlineUserIdを使用
+    if (lineIds.length === 0 && client.lineUserId) {
+      lineIds.push(client.lineUserId);
+    }
+
     const token = generateReportDownloadToken(reportId);
-    const baseUrl = process.env.NEXTAUTH_URL ?? "https://auto-traffic-report.vercel.app";
+    const baseUrl = process.env.NEXTAUTH_URL ?? (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "");
     const pdfUrl = `${baseUrl}/api/reports/${reportId}/pdf?token=${token}`;
 
-    await sendReportLineMessage(
-      client.lineUserId,
-      report.site.siteName,
-      reportMonth,
-      {
-        sessions: reportData.currentMonth.sessions,
-        totalUsers: reportData.currentMonth.totalUsers,
-        screenPageViews: reportData.currentMonth.screenPageViews,
-        bounceRate: reportData.currentMonth.bounceRate,
-      },
-      pdfUrl
-    );
+    for (const lineId of lineIds) {
+      await sendReportLineMessage(
+        lineId,
+        report.site.siteName,
+        reportMonth,
+        {
+          sessions: reportData.currentMonth.sessions,
+          totalUsers: reportData.currentMonth.totalUsers,
+          screenPageViews: reportData.currentMonth.screenPageViews,
+          bounceRate: reportData.currentMonth.bounceRate,
+        },
+        pdfUrl
+      );
 
-    await prisma.deliveryLog.create({
-      data: { reportId, channel: "line", status: "success", sentAt: new Date() },
-    });
+      await prisma.deliveryLog.create({
+        data: { reportId, channel: "line", status: "success", sentAt: new Date() },
+      });
+    }
   }
 
   // メール送信
@@ -92,7 +103,7 @@ export const runMonthlyBatch = async (): Promise<BatchResult> => {
       reportStartDate: { lte: currentMonthStart },
       client: {
         isActive: true,
-        monthlyBatchSubscription: { isActive: true },
+        monthlyBatchSubscription: { isActive: true, excludeFromBatch: false },
       },
     },
     include: {
@@ -179,7 +190,7 @@ export const runMonthlyBatchWithRange = async (customRange?: CustomRange): Promi
       reportStartDate: { lte: currentMonthStart },
       client: {
         isActive: true,
-        monthlyBatchSubscription: { isActive: true },
+        monthlyBatchSubscription: { isActive: true, excludeFromBatch: false },
       },
     },
     include: {

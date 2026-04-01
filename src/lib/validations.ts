@@ -30,6 +30,7 @@ export const batchSubscriptionCreateSchema = z.object({
 export const batchSubscriptionUpdateSchema = z.object({
   deliveryChannel: z.enum(["email", "line", "both"]).optional(),
   isActive: z.boolean().optional(),
+  excludeFromBatch: z.boolean().optional(),
 });
 
 export type BatchSubscriptionCreateInput = z.infer<typeof batchSubscriptionCreateSchema>;
