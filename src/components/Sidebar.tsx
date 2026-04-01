@@ -5,9 +5,9 @@ import { usePathname } from "next/navigation";
 
 const navItems = [
   { href: "/dashboard", label: "ダッシュボード", icon: "📊" },
-  { href: "/clients", label: "クライアント", icon: "👥" },
-  { href: "/reports", label: "レポート", icon: "📄" },
-  { href: "/batch", label: "バッチ管理", icon: "🔄" },
+  { href: "/clients", label: "クライアント一覧", icon: "👥" },
+  { href: "/reports", label: "出力レポート履歴", icon: "📄" },
+  { href: "/batch", label: "レポート出力・送信", icon: "🔄" },
   { href: "/settings", label: "設定", icon: "⚙️" },
 ];
 

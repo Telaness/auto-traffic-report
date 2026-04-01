@@ -419,7 +419,7 @@ export default function BatchPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-gray-900">月次バッチ管理</h2>
+        <h2 className="text-2xl font-bold text-gray-900">レポート出力・送信</h2>
         <div className="flex gap-2">
           <button
             onClick={() => {

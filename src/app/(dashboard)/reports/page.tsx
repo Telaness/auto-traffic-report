@@ -107,7 +107,7 @@ export default function ReportsPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-gray-900">レポート一覧</h2>
+        <h2 className="text-2xl font-bold text-gray-900">出力レポート履歴</h2>
         <div className="flex gap-2">
           <button
             onClick={handleBulkDownload}
