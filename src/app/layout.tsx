@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "オトレポ - auto-reportsHP",
+  title: "オトレポ",
   description: "HP月次トラフィックレポート自動生成・配信システム",
   icons: {
     icon: "/fav.png",

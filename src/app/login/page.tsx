@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useState, type FormEvent } from "react";
+import Image from "next/image";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 
@@ -71,8 +72,8 @@ function LoginForm() {
       <div className="w-full max-w-md">
         <div className="bg-white rounded-2xl shadow-lg p-8">
           <div className="text-center mb-8">
+            <Image src="/fav.png" alt="オトレポ" width={40} height={40} className="mx-auto mb-2" />
             <h1 className="text-2xl font-bold text-[#1a1a2e]">オトレポ</h1>
-            <p className="text-sm text-gray-500 mt-1">auto-reportsHP</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">

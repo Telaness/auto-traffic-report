@@ -1,4 +1,5 @@
 "use client";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -16,8 +17,10 @@ export const Sidebar = () => {
   return (
     <aside className="w-64 bg-[#1a1a2e] text-white min-h-screen flex flex-col">
       <div className="p-6 border-b border-white/10">
-        <h1 className="text-xl font-bold">オトレポ</h1>
-        <p className="text-xs text-white/60 mt-1">auto-reportsHP</p>
+        <div className="flex items-center gap-2">
+          <Image src="/fav.png" alt="オトレポ" width={28} height={28} />
+          <h1 className="text-xl font-bold">オトレポ</h1>
+        </div>
       </div>
       <nav className="flex-1 p-4">
         <ul className="space-y-1">
