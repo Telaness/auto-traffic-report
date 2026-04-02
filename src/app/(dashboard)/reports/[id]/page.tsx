@@ -73,16 +73,18 @@ export default function ReportDetailPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Link href="/reports" className="text-gray-500 hover:text-gray-700">
-          &larr; 戻る
-        </Link>
-        <h2 className="text-2xl font-bold text-gray-900">レポート詳細</h2>
-        <StatusBadge status={report.status} />
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+        <div className="flex items-center gap-3">
+          <Link href="/reports" className="text-gray-500 hover:text-gray-700">
+            &larr; 戻る
+          </Link>
+          <h2 className="text-2xl font-bold text-gray-900">レポート詳細</h2>
+          <StatusBadge status={report.status} />
+        </div>
         {report.reportData && (
           <button
             onClick={() => window.open(`/api/reports/${report.id}/html`, "_blank")}
-            className="ml-auto bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm"
+            className="sm:ml-auto bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm"
           >
             PDFダウンロード
           </button>
@@ -271,7 +273,7 @@ export default function ReportDetailPage() {
 
           {reportData.searchConsole && (
             <Card title="検索パフォーマンス (SEO)">
-              <div className="grid grid-cols-3 gap-4 mb-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
                 <div className="text-center p-3 bg-gray-50 rounded-lg">
                   <div className="text-xs text-gray-500">クリック数</div>
                   <div className="text-lg font-bold">{reportData.searchConsole.totalClicks.toLocaleString()}</div>

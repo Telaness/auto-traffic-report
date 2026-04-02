@@ -452,29 +452,31 @@ export default function BatchPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <h2 className="text-2xl font-bold text-gray-900">レポート出力・送信</h2>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleToggleAutoSchedule}
-              disabled={isTogglingAutoSchedule}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50 ${
-                autoScheduleEnabled ? "bg-green-500" : "bg-gray-300"
-              }`}
-            >
-              <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                  autoScheduleEnabled ? "translate-x-6" : "translate-x-1"
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-4">
+            <h2 className="text-2xl font-bold text-gray-900">レポート出力・送信</h2>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleToggleAutoSchedule}
+                disabled={isTogglingAutoSchedule}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50 ${
+                  autoScheduleEnabled ? "bg-green-500" : "bg-gray-300"
                 }`}
-              />
-            </button>
-            <span className="text-sm text-gray-600">
-              毎月自動実行{autoScheduleEnabled ? "：ON" : "：OFF"}
-            </span>
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    autoScheduleEnabled ? "translate-x-6" : "translate-x-1"
+                  }`}
+                />
+              </button>
+              <span className="text-sm text-gray-600 hidden sm:inline">
+                毎月自動実行{autoScheduleEnabled ? "：ON" : "：OFF"}
+              </span>
+            </div>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <button
             onClick={() => {
               setPdfClientId("");

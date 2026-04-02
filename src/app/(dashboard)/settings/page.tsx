@@ -54,61 +54,23 @@ export default function SettingsPage() {
           <p className="text-gray-500 text-sm">読み込み中...</p>
         ) : (
           <div className="space-y-3">
-            <div className="flex items-center py-2 border-b border-gray-100">
-              <StatusDot ok={envStatus.smtp} />
-              <span className="text-sm font-medium text-gray-700 w-48">
-                SMTP（メール配信）
-              </span>
-              <span className="text-sm text-gray-500">
-                {envStatus.smtp
-                  ? "設定済み"
-                  : "未設定 - SMTP_HOST, SMTP_USER, SMTP_PASS, SMTP_FROM を設定してください"}
-              </span>
-            </div>
-            <div className="flex items-center py-2 border-b border-gray-100">
-              <StatusDot ok={envStatus.line} />
-              <span className="text-sm font-medium text-gray-700 w-48">
-                LINE Messaging API
-              </span>
-              <span className="text-sm text-gray-500">
-                {envStatus.line
-                  ? "設定済み"
-                  : "未設定 - LINE_CHANNEL_ACCESS_TOKEN を設定してください"}
-              </span>
-            </div>
-            <div className="flex items-center py-2 border-b border-gray-100">
-              <StatusDot ok={envStatus.lineSecret} />
-              <span className="text-sm font-medium text-gray-700 w-48">
-                LINE Webhook
-              </span>
-              <span className="text-sm text-gray-500">
-                {envStatus.lineSecret
-                  ? "設定済み"
-                  : "未設定 - LINE_CHANNEL_SECRET を設定してください"}
-              </span>
-            </div>
-            <div className="flex items-center py-2 border-b border-gray-100">
-              <StatusDot ok={envStatus.ga4} />
-              <span className="text-sm font-medium text-gray-700 w-48">
-                Google Analytics 4
-              </span>
-              <span className="text-sm text-gray-500">
-                {envStatus.ga4
-                  ? "設定済み"
-                  : "未設定 - GOOGLE_SERVICE_ACCOUNT_KEY を設定してください"}
-              </span>
-            </div>
-            <div className="flex items-center py-2">
-              <StatusDot ok={envStatus.anthropic} />
-              <span className="text-sm font-medium text-gray-700 w-48">
-                AI分析（Claude）
-              </span>
-              <span className="text-sm text-gray-500">
-                {envStatus.anthropic
-                  ? "設定済み"
-                  : "未設定 - ANTHROPIC_API_KEY を設定してください"}
-              </span>
-            </div>
+            {[
+              { ok: envStatus.smtp, label: "SMTP（メール配信）", msg: "SMTP_HOST, SMTP_USER, SMTP_PASS, SMTP_FROM を設定してください" },
+              { ok: envStatus.line, label: "LINE Messaging API", msg: "LINE_CHANNEL_ACCESS_TOKEN を設定してください" },
+              { ok: envStatus.lineSecret, label: "LINE Webhook", msg: "LINE_CHANNEL_SECRET を設定してください" },
+              { ok: envStatus.ga4, label: "Google Analytics 4", msg: "GOOGLE_SERVICE_ACCOUNT_KEY を設定してください" },
+              { ok: envStatus.anthropic, label: "AI分析（Claude）", msg: "ANTHROPIC_API_KEY を設定してください" },
+            ].map((item, i, arr) => (
+              <div key={item.label} className={`flex flex-col sm:flex-row sm:items-center gap-1 py-2 ${i < arr.length - 1 ? "border-b border-gray-100" : ""}`}>
+                <div className="flex items-center sm:w-56 shrink-0">
+                  <StatusDot ok={item.ok} />
+                  <span className="text-sm font-medium text-gray-700">{item.label}</span>
+                </div>
+                <span className="text-sm text-gray-500 sm:ml-0 ml-4">
+                  {item.ok ? "設定済み" : `未設定 - ${item.msg}`}
+                </span>
+              </div>
+            ))}
           </div>
         )}
       </Card>
