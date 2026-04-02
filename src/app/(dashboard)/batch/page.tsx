@@ -77,6 +77,10 @@ export default function BatchPage() {
   const [showSingleDialog, setShowSingleDialog] = useState(false);
   const [selectedSubscriptionId, setSelectedSubscriptionId] = useState("");
 
+  // 自動実行設定
+  const [autoScheduleEnabled, setAutoScheduleEnabled] = useState(false);
+  const [isTogglingAutoSchedule, setIsTogglingAutoSchedule] = useState(false);
+
   // PDF取得ダイアログ
   const [showPdfDialog, setShowPdfDialog] = useState(false);
   const [pdfClientId, setPdfClientId] = useState("");
@@ -135,12 +139,42 @@ export default function BatchPage() {
     setAvailableClients(filtered);
   }, [subscriptions]);
 
+  const fetchAutoSchedule = useCallback(async () => {
+    try {
+      const res = await fetch("/api/batch/auto-schedule");
+      if (res.ok) {
+        const data = await res.json();
+        setAutoScheduleEnabled(data.enabled);
+      }
+    } catch {
+      console.error("自動実行設定の取得に失敗");
+    }
+  }, []);
+
+  const handleToggleAutoSchedule = async () => {
+    setIsTogglingAutoSchedule(true);
+    try {
+      const res = await fetch("/api/batch/auto-schedule", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled: !autoScheduleEnabled }),
+      });
+      if (res.ok) {
+        setAutoScheduleEnabled(!autoScheduleEnabled);
+      }
+    } catch {
+      alert("設定の更新に失敗しました");
+    } finally {
+      setIsTogglingAutoSchedule(false);
+    }
+  };
+
   useEffect(() => {
     const load = async () => {
-      await fetchSubscriptions();
+      await Promise.all([fetchSubscriptions(), fetchAutoSchedule()]);
     };
     void load();
-  }, [fetchSubscriptions]);
+  }, [fetchSubscriptions, fetchAutoSchedule]);
 
   useEffect(() => {
     if (showForm) {
@@ -419,7 +453,27 @@ export default function BatchPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-gray-900">レポート出力・送信</h2>
+        <div className="flex items-center gap-4">
+          <h2 className="text-2xl font-bold text-gray-900">レポート出力・送信</h2>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleToggleAutoSchedule}
+              disabled={isTogglingAutoSchedule}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50 ${
+                autoScheduleEnabled ? "bg-green-500" : "bg-gray-300"
+              }`}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                  autoScheduleEnabled ? "translate-x-6" : "translate-x-1"
+                }`}
+              />
+            </button>
+            <span className="text-sm text-gray-600">
+              毎月自動実行{autoScheduleEnabled ? "：ON" : "：OFF"}
+            </span>
+          </div>
+        </div>
         <div className="flex gap-2">
           <button
             onClick={() => {

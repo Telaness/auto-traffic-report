@@ -85,6 +85,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         return true;
       }
 
+      // Cron は認証不要（CRON_SECRETで保護）
+      if (pathname === "/api/batch/cron") {
+        return true;
+      }
+
       // レポートPDFダウンロードは認証不要（トークンで保護）
       if (/^\/api\/reports\/[^/]+\/pdf$/.test(pathname)) {
         return true;

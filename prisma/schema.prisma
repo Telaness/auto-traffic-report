@@ -85,6 +85,14 @@ model LineTarget {
   @@map("line_targets")
 }
 
+model SystemSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("system_settings")
+}
+
 model DeliveryLog {
   id           String    @id @default(uuid())
   reportId     String    @map("report_id")
