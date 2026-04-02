@@ -34,18 +34,11 @@ interface ClientDetail {
   id: string;
   name: string;
   contactEmail: string | null;
-  lineUserId: string | null;
-  deliveryChannel: "email" | "line" | "both";
   isActive: boolean;
   sites: Site[];
   lineTargets: LineTarget[];
 }
 
-const channelLabels: Record<string, string> = {
-  email: "メール",
-  line: "LINE",
-  both: "メール + LINE",
-};
 
 export default function ClientDetailPage() {
   const params = useParams();
@@ -59,8 +52,6 @@ export default function ClientDetailPage() {
   const [editData, setEditData] = useState({
     name: "",
     contactEmail: "",
-    lineUserId: "",
-    deliveryChannel: "email" as "email" | "line" | "both",
   });
   const [siteFormData, setSiteFormData] = useState({
     siteName: "",
@@ -88,8 +79,6 @@ export default function ClientDetailPage() {
     setEditData({
       name: data.name,
       contactEmail: data.contactEmail ?? "",
-      lineUserId: data.lineUserId ?? "",
-      deliveryChannel: data.deliveryChannel,
     });
   }, [params.id, router]);
 
@@ -109,8 +98,6 @@ export default function ClientDetailPage() {
       body: JSON.stringify({
         name: editData.name,
         contactEmail: editData.contactEmail || null,
-        lineUserId: editData.lineUserId || null,
-        deliveryChannel: editData.deliveryChannel,
       }),
     });
     if (res.ok) {
@@ -307,18 +294,6 @@ export default function ClientDetailPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">配信チャネル</label>
-                <select
-                  value={editData.deliveryChannel}
-                  onChange={(e) => setEditData({ ...editData, deliveryChannel: e.target.value as "email" | "line" | "both" })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-[#1a1a2e]"
-                >
-                  <option value="email">メール</option>
-                  <option value="line">LINE</option>
-                  <option value="both">メール + LINE</option>
-                </select>
-              </div>
-              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">メールアドレス</label>
                 <input
                   type="email"
@@ -327,59 +302,32 @@ export default function ClientDetailPage() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-[#1a1a2e]"
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">LINE ユーザーID</label>
-                <input
-                  type="text"
-                  value={editData.lineUserId}
-                  onChange={(e) => setEditData({ ...editData, lineUserId: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-[#1a1a2e]"
-                />
-              </div>
             </div>
-            <div className="flex justify-end">
-              <button type="submit" className="px-6 py-2 bg-[#1a1a2e] text-white rounded-lg hover:bg-[#16213e]">
-                更新
-              </button>
-            </div>
-          </form>
-        </Card>
-      ) : (
-        <Card title="クライアント情報">
-          <dl className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
             <div>
-              <dt className="text-sm text-gray-500">会社名</dt>
-              <dd className="mt-1 font-medium">{client.name}</dd>
-            </div>
-            <div>
-              <dt className="text-sm text-gray-500">配信チャネル</dt>
-              <dd className="mt-1">{channelLabels[client.deliveryChannel]}</dd>
-            </div>
-            <div>
-              <dt className="text-sm text-gray-500">メールアドレス</dt>
-              <dd className="mt-1">{client.contactEmail ?? "-"}</dd>
-            </div>
-            <div className="md:col-span-2">
-              <dt className="text-sm text-gray-500 flex items-center gap-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 LINE送信先
                 <button
+                  type="button"
                   onClick={() => {
                     setShowLineLink(true);
                     fetchLineTargets();
                   }}
-                  className="px-2 py-0.5 text-xs bg-green-50 text-green-700 rounded hover:bg-green-100"
+                  className="ml-2 px-2 py-0.5 text-xs bg-green-50 text-green-700 rounded hover:bg-green-100"
                 >
                   追加
                 </button>
                 <button
+                  type="button"
                   onClick={() => setShowManualRegister(!showManualRegister)}
-                  className="px-2 py-0.5 text-xs bg-blue-50 text-blue-700 rounded hover:bg-blue-100"
+                  className="ml-1 px-2 py-0.5 text-xs bg-blue-50 text-blue-700 rounded hover:bg-blue-100"
                 >
                   {showManualRegister ? "閉じる" : "手動登録"}
                 </button>
-              </dt>
+              </label>
+
               {showManualRegister && (
-                <div className="mt-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                <div className="mb-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
                   <p className="text-xs text-gray-600 mb-2">
                     LINE IDを直接入力して登録します。登録時にLINE APIから名前を自動取得します。
                   </p>
@@ -406,6 +354,7 @@ export default function ClientDetailPage() {
                       </select>
                     </div>
                     <button
+                      type="button"
                       onClick={handleManualRegister}
                       disabled={!manualLineId.trim() || isRegistering}
                       className="px-4 py-1.5 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 whitespace-nowrap"
@@ -415,85 +364,15 @@ export default function ClientDetailPage() {
                   </div>
                 </div>
               )}
-              <dd className="mt-2">
-                {client.lineTargets.length === 0 ? (
-                  <span className="text-gray-400">未設定</span>
-                ) : (
-                  <div className="space-y-2">
-                    {client.lineTargets.map((t) => (
-                      <div
-                        key={t.id}
-                        className="flex items-center justify-between p-2 bg-gray-50 rounded border border-gray-200"
-                      >
-                        <div className="flex items-center gap-2">
-                          <span
-                            className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium ${
-                              t.type === "group"
-                                ? "bg-purple-100 text-purple-700"
-                                : "bg-blue-100 text-blue-700"
-                            }`}
-                          >
-                            {t.type === "group" ? "グループ" : "個人"}
-                          </span>
-                          <span className="text-sm font-medium">
-                            {t.displayName ?? "名前未取得"}
-                          </span>
-                          <span className="text-xs text-gray-400 font-mono">
-                            {t.lineId}
-                          </span>
-                        </div>
-                        <button
-                          onClick={() => handleUnassignLine(t.id)}
-                          className="px-2 py-1 text-xs bg-red-50 text-red-700 rounded hover:bg-red-100"
-                        >
-                          解除
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </dd>
-            </div>
-          </dl>
 
-          {showLineLink && (
-            <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-              <div className="flex items-center justify-between mb-3">
-                <h4 className="text-sm font-medium text-gray-700">
-                  LINE送信先一覧（未紐づけ）
-                </h4>
-                <div className="flex gap-1">
-                  {(["", "user", "group"] as const).map((t) => {
-                    const label = t === "" ? "すべて" : t === "user" ? "個人" : "グループ";
-                    return (
-                      <button
-                        key={t}
-                        onClick={() => {
-                          setLineTypeFilter(t);
-                          fetchLineTargets(t || undefined);
-                        }}
-                        className={`px-3 py-1 text-xs rounded ${
-                          lineTypeFilter === t
-                            ? "bg-[#1a1a2e] text-white"
-                            : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-100"
-                        }`}
-                      >
-                        {label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-              {lineTargets.length === 0 ? (
-                <p className="text-sm text-gray-500">
-                  紐づけ可能な送信先がありません。公式アカウントを友だち追加、またはグループに招待してもらってください。
-                </p>
+              {client.lineTargets.length === 0 ? (
+                <p className="text-sm text-gray-400">未設定</p>
               ) : (
                 <div className="space-y-2">
-                  {lineTargets.map((t) => (
+                  {client.lineTargets.map((t) => (
                     <div
                       key={t.id}
-                      className="flex items-center justify-between p-2 bg-white rounded border border-gray-200"
+                      className="flex items-center justify-between p-2 bg-gray-50 rounded border border-gray-200"
                     >
                       <div className="flex items-center gap-2">
                         <span
@@ -513,24 +392,149 @@ export default function ClientDetailPage() {
                         </span>
                       </div>
                       <button
-                        onClick={() => handleAssignLine(t.id)}
-                        disabled={isAssigning}
-                        className="px-3 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
+                        type="button"
+                        onClick={() => handleUnassignLine(t.id)}
+                        className="px-2 py-1 text-xs bg-red-50 text-red-700 rounded hover:bg-red-100"
                       >
-                        {isAssigning ? "紐づけ中..." : "紐づける"}
+                        解除
                       </button>
                     </div>
                   ))}
                 </div>
               )}
-              <button
-                onClick={() => setShowLineLink(false)}
-                className="mt-2 text-sm text-gray-500 hover:text-gray-700"
-              >
-                閉じる
+
+              {showLineLink && (
+                <div className="mt-3 p-4 bg-gray-50 rounded-lg">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="text-sm font-medium text-gray-700">
+                      LINE送信先一覧（未紐づけ）
+                    </h4>
+                    <div className="flex gap-1">
+                      {(["", "user", "group"] as const).map((t) => {
+                        const label = t === "" ? "すべて" : t === "user" ? "個人" : "グループ";
+                        return (
+                          <button
+                            key={t}
+                            type="button"
+                            onClick={() => {
+                              setLineTypeFilter(t);
+                              fetchLineTargets(t || undefined);
+                            }}
+                            className={`px-3 py-1 text-xs rounded ${
+                              lineTypeFilter === t
+                                ? "bg-[#1a1a2e] text-white"
+                                : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-100"
+                            }`}
+                          >
+                            {label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  {lineTargets.length === 0 ? (
+                    <p className="text-sm text-gray-500">
+                      紐づけ可能な送信先がありません。公式アカウントを友だち追加、またはグループに招待してもらってください。
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      {lineTargets.map((t) => (
+                        <div
+                          key={t.id}
+                          className="flex items-center justify-between p-2 bg-white rounded border border-gray-200"
+                        >
+                          <div className="flex items-center gap-2">
+                            <span
+                              className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium ${
+                                t.type === "group"
+                                  ? "bg-purple-100 text-purple-700"
+                                  : "bg-blue-100 text-blue-700"
+                              }`}
+                            >
+                              {t.type === "group" ? "グループ" : "個人"}
+                            </span>
+                            <span className="text-sm font-medium">
+                              {t.displayName ?? "名前未取得"}
+                            </span>
+                            <span className="text-xs text-gray-400 font-mono">
+                              {t.lineId}
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleAssignLine(t.id)}
+                            disabled={isAssigning}
+                            className="px-3 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
+                          >
+                            {isAssigning ? "紐づけ中..." : "紐づける"}
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setShowLineLink(false)}
+                    className="mt-2 text-sm text-gray-500 hover:text-gray-700"
+                  >
+                    閉じる
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end">
+              <button type="submit" className="px-6 py-2 bg-[#1a1a2e] text-white rounded-lg hover:bg-[#16213e]">
+                更新
               </button>
             </div>
-          )}
+          </form>
+        </Card>
+      ) : (
+        <Card title="クライアント情報">
+          <dl className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <dt className="text-sm text-gray-500">会社名</dt>
+              <dd className="mt-1 font-medium">{client.name}</dd>
+            </div>
+            <div>
+              <dt className="text-sm text-gray-500">メールアドレス</dt>
+              <dd className="mt-1">{client.contactEmail ?? "-"}</dd>
+            </div>
+            <div className="md:col-span-2">
+              <dt className="text-sm text-gray-500">LINE送信先</dt>
+              <dd className="mt-2">
+                {client.lineTargets.length === 0 ? (
+                  <span className="text-gray-400">未設定</span>
+                ) : (
+                  <div className="space-y-2">
+                    {client.lineTargets.map((t) => (
+                      <div
+                        key={t.id}
+                        className="flex items-center gap-2 p-2 bg-gray-50 rounded border border-gray-200"
+                      >
+                        <span
+                          className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium ${
+                            t.type === "group"
+                              ? "bg-purple-100 text-purple-700"
+                              : "bg-blue-100 text-blue-700"
+                          }`}
+                        >
+                          {t.type === "group" ? "グループ" : "個人"}
+                        </span>
+                        <span className="text-sm font-medium">
+                          {t.displayName ?? "名前未取得"}
+                        </span>
+                        <span className="text-xs text-gray-400 font-mono">
+                          {t.lineId}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </dd>
+            </div>
+          </dl>
         </Card>
       )}
 
