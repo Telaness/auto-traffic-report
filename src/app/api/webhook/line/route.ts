@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { after } from "next/server";
 import crypto from "crypto";
-import { prisma } from "@/src/lib/db";
 
 interface LineEventSource {
   type: "user" | "group" | "room";
@@ -73,6 +73,7 @@ const upsertTarget = async (
   type: "user" | "group",
   isActive: boolean
 ) => {
+  const { prisma } = await import("@/src/lib/db");
   const profile = isActive ? await fetchProfile(type, lineId) : null;
 
   await prisma.lineTarget.upsert({
@@ -109,29 +110,35 @@ export const POST = async (request: NextRequest) => {
 
     const body = JSON.parse(rawBody) as LineWebhookBody;
 
-    for (const event of body.events) {
-      const { type: eventType, source } = event;
+    // イベント処理をバックグラウンドで実行（LINEへのレスポンスを遅延させない）
+    const processEvents = async () => {
+      for (const event of body.events) {
+        const { type: eventType, source } = event;
 
-      // 友だち追加
-      if (eventType === "follow" && source.userId) {
-        await upsertTarget(source.userId, "user", true);
-      }
+        // 友だち追加
+        if (eventType === "follow" && source.userId) {
+          await upsertTarget(source.userId, "user", true);
+        }
 
-      // ブロック（友だち解除）
-      if (eventType === "unfollow" && source.userId) {
-        await upsertTarget(source.userId, "user", false);
-      }
+        // ブロック（友だち解除）
+        if (eventType === "unfollow" && source.userId) {
+          await upsertTarget(source.userId, "user", false);
+        }
 
-      // グループ参加
-      if (eventType === "join" && source.groupId) {
-        await upsertTarget(source.groupId, "group", true);
-      }
+        // グループ参加
+        if (eventType === "join" && source.groupId) {
+          await upsertTarget(source.groupId, "group", true);
+        }
 
-      // グループ退出
-      if (eventType === "leave" && source.groupId) {
-        await upsertTarget(source.groupId, "group", false);
+        // グループ退出
+        if (eventType === "leave" && source.groupId) {
+          await upsertTarget(source.groupId, "group", false);
+        }
       }
-    }
+    };
+
+    // レスポンス送信後にイベント処理を実行（Vercelで関数が終了しないよう保証）
+    after(processEvents);
 
     return NextResponse.json({ message: "ok" });
   } catch (error) {
