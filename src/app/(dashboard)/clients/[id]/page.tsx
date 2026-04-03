@@ -605,91 +605,163 @@ export default function ClientDetailPage() {
         {client.sites.length === 0 ? (
           <p className="text-gray-500 text-center py-4">サイトが登録されていません</p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-100">
-                  <th className="text-left py-3 px-4 font-medium text-gray-600">サイト名</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-600">URL</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-600">GA4 ID</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-600">開始日</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-600">最新レポート</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-600">操作</th>
-                </tr>
-              </thead>
-              <tbody>
-                {client.sites.map((site) => {
-                  const latestReport = site.reports[0];
-                  return (
-                    <tr key={site.id} className="border-b border-gray-50 hover:bg-gray-50 align-top">
-                      <td className="py-3 px-4 font-medium">{site.siteName}</td>
-                      <td className="py-3 px-4 text-blue-600">{site.siteUrl}</td>
-                      <td className="py-3 px-4 font-mono text-xs">{site.ga4PropertyId}</td>
-                      <td className="py-3 px-4">
-                        {new Date(site.reportStartDate).toLocaleDateString("ja-JP")}
-                      </td>
-                      <td className="py-3 px-4">
-                        {latestReport ? (
-                          <StatusBadge status={latestReport.status} />
-                        ) : (
-                          <span className="text-gray-400">-</span>
-                        )}
-                      </td>
-                      <td className="py-3 px-4">
-                        {reportFormSiteId === site.id ? (
-                          <div className="space-y-2 min-w-[240px]">
-                            <div className="flex flex-col gap-1">
-                              <label className="text-xs text-gray-500">開始日</label>
-                              <input
-                                type="date"
-                                value={reportRange.startDate}
-                                onChange={(e) => setReportRange({ ...reportRange, startDate: e.target.value })}
-                                className="px-2 py-1 text-sm border border-gray-300 rounded outline-none focus:ring-2 focus:ring-[#1a1a2e]"
-                              />
-                            </div>
-                            <div className="flex flex-col gap-1">
-                              <label className="text-xs text-gray-500">終了日</label>
-                              <input
-                                type="date"
-                                value={reportRange.endDate}
-                                onChange={(e) => setReportRange({ ...reportRange, endDate: e.target.value })}
-                                className="px-2 py-1 text-sm border border-gray-300 rounded outline-none focus:ring-2 focus:ring-[#1a1a2e]"
-                              />
-                            </div>
-                            <div className="flex gap-2">
-                              <button
-                                onClick={() => handleGenerateReport(site.id)}
-                                disabled={isGenerating}
-                                className="px-3 py-1 text-sm bg-[#1a1a2e] text-white rounded hover:bg-[#16213e] disabled:opacity-50"
-                              >
-                                {isGenerating ? "生成中..." : "生成"}
-                              </button>
-                              <button
-                                onClick={() => {
-                                  setReportFormSiteId(null);
-                                  setReportRange({ startDate: "", endDate: "" });
-                                }}
-                                className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
-                              >
-                                閉じる
-                              </button>
-                            </div>
+          <>
+            {/* モバイル: カード表示 */}
+            <div className="space-y-3 lg:hidden">
+              {client.sites.map((site) => {
+                const latestReport = site.reports[0];
+                return (
+                  <div key={site.id} className="p-3 border border-gray-200 rounded-lg space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium text-sm truncate mr-2">{site.siteName}</span>
+                      {latestReport ? (
+                        <StatusBadge status={latestReport.status} />
+                      ) : (
+                        <span className="text-xs text-gray-400">レポートなし</span>
+                      )}
+                    </div>
+                    <p className="text-xs text-blue-600 truncate">{site.siteUrl}</p>
+                    <div className="flex items-center gap-3 text-xs text-gray-500">
+                      <span className="font-mono">{site.ga4PropertyId}</span>
+                      <span>開始: {new Date(site.reportStartDate).toLocaleDateString("ja-JP")}</span>
+                    </div>
+                    {reportFormSiteId === site.id ? (
+                      <div className="space-y-2 pt-1">
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="text-xs text-gray-500">開始日</label>
+                            <input
+                              type="date"
+                              value={reportRange.startDate}
+                              onChange={(e) => setReportRange({ ...reportRange, startDate: e.target.value })}
+                              className="w-full px-2 py-1 text-sm border border-gray-300 rounded outline-none focus:ring-2 focus:ring-[#1a1a2e]"
+                            />
                           </div>
-                        ) : (
+                          <div>
+                            <label className="text-xs text-gray-500">終了日</label>
+                            <input
+                              type="date"
+                              value={reportRange.endDate}
+                              onChange={(e) => setReportRange({ ...reportRange, endDate: e.target.value })}
+                              className="w-full px-2 py-1 text-sm border border-gray-300 rounded outline-none focus:ring-2 focus:ring-[#1a1a2e]"
+                            />
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
                           <button
-                            onClick={() => setReportFormSiteId(site.id)}
-                            className="px-3 py-1.5 text-sm bg-[#1a1a2e] text-white rounded-lg hover:bg-[#16213e] whitespace-nowrap"
+                            onClick={() => handleGenerateReport(site.id)}
+                            disabled={isGenerating}
+                            className="px-3 py-1 text-sm bg-[#1a1a2e] text-white rounded hover:bg-[#16213e] disabled:opacity-50"
                           >
-                            レポート生成
+                            {isGenerating ? "生成中..." : "生成"}
                           </button>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                          <button
+                            onClick={() => { setReportFormSiteId(null); setReportRange({ startDate: "", endDate: "" }); }}
+                            className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
+                          >
+                            閉じる
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setReportFormSiteId(site.id)}
+                        className="w-full px-3 py-1.5 text-sm bg-[#1a1a2e] text-white rounded-lg hover:bg-[#16213e]"
+                      >
+                        レポート生成
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            {/* デスクトップ: テーブル表示 */}
+            <div className="hidden lg:block overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-100">
+                    <th className="text-left py-3 px-4 font-medium text-gray-600">サイト名</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-600">URL</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-600">GA4 ID</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-600">開始日</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-600">最新レポート</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-600">操作</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {client.sites.map((site) => {
+                    const latestReport = site.reports[0];
+                    return (
+                      <tr key={site.id} className="border-b border-gray-50 hover:bg-gray-50 align-top">
+                        <td className="py-3 px-4 font-medium">{site.siteName}</td>
+                        <td className="py-3 px-4 text-blue-600">{site.siteUrl}</td>
+                        <td className="py-3 px-4 font-mono text-xs">{site.ga4PropertyId}</td>
+                        <td className="py-3 px-4">
+                          {new Date(site.reportStartDate).toLocaleDateString("ja-JP")}
+                        </td>
+                        <td className="py-3 px-4">
+                          {latestReport ? (
+                            <StatusBadge status={latestReport.status} />
+                          ) : (
+                            <span className="text-gray-400">-</span>
+                          )}
+                        </td>
+                        <td className="py-3 px-4">
+                          {reportFormSiteId === site.id ? (
+                            <div className="space-y-2 min-w-[240px]">
+                              <div className="flex flex-col gap-1">
+                                <label className="text-xs text-gray-500">開始日</label>
+                                <input
+                                  type="date"
+                                  value={reportRange.startDate}
+                                  onChange={(e) => setReportRange({ ...reportRange, startDate: e.target.value })}
+                                  className="px-2 py-1 text-sm border border-gray-300 rounded outline-none focus:ring-2 focus:ring-[#1a1a2e]"
+                                />
+                              </div>
+                              <div className="flex flex-col gap-1">
+                                <label className="text-xs text-gray-500">終了日</label>
+                                <input
+                                  type="date"
+                                  value={reportRange.endDate}
+                                  onChange={(e) => setReportRange({ ...reportRange, endDate: e.target.value })}
+                                  className="px-2 py-1 text-sm border border-gray-300 rounded outline-none focus:ring-2 focus:ring-[#1a1a2e]"
+                                />
+                              </div>
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => handleGenerateReport(site.id)}
+                                  disabled={isGenerating}
+                                  className="px-3 py-1 text-sm bg-[#1a1a2e] text-white rounded hover:bg-[#16213e] disabled:opacity-50"
+                                >
+                                  {isGenerating ? "生成中..." : "生成"}
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setReportFormSiteId(null);
+                                    setReportRange({ startDate: "", endDate: "" });
+                                  }}
+                                  className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
+                                >
+                                  閉じる
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => setReportFormSiteId(site.id)}
+                              className="px-3 py-1.5 text-sm bg-[#1a1a2e] text-white rounded-lg hover:bg-[#16213e] whitespace-nowrap"
+                            >
+                              レポート生成
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </Card>
     </div>

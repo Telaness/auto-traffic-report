@@ -149,7 +149,53 @@ export default function ReportsPage() {
           <p className="text-center py-8 text-gray-500">レポートはまだありません</p>
         ) : (
           <>
-            <div className="overflow-x-auto">
+            {/* モバイル: カード表示 */}
+            <div className="space-y-3 md:hidden">
+              {reports.map((report) => (
+                <Link
+                  key={report.id}
+                  href={`/reports/${report.id}`}
+                  className="block p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="font-medium text-sm truncate mr-2">{report.site.client.name}</span>
+                    <StatusBadge status={report.status} />
+                  </div>
+                  <p className="text-xs text-gray-600 mb-1.5 truncate">{report.site.siteName}</p>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-gray-500">
+                        {new Date(report.reportMonth).toLocaleDateString("ja-JP", {
+                          year: "numeric",
+                          month: "long",
+                        })}
+                      </span>
+                      <div className="flex gap-1">
+                        {report.deliveryLogs.map((log, i) => (
+                          <span
+                            key={i}
+                            className={`text-xs px-1.5 py-0.5 rounded ${
+                              log.status === "success"
+                                ? "bg-green-100 text-green-700"
+                                : "bg-red-100 text-red-700"
+                            }`}
+                          >
+                            {log.channel === "email" ? "Mail" : "LINE"}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    <span className="text-xs text-gray-400">
+                      {report.generatedAt
+                        ? new Date(report.generatedAt).toLocaleDateString("ja-JP")
+                        : ""}
+                    </span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+            {/* デスクトップ: テーブル表示 */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-gray-100">

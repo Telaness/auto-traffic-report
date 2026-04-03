@@ -737,48 +737,92 @@ export default function BatchPage() {
           </p>
         ) : (
           <>
-            <div className="overflow-x-auto">
+            {/* モバイル: カード表示 */}
+            <div className="space-y-3 lg:hidden">
+              {subscriptions.map((sub) => (
+                <div key={sub.id} className="p-3 border border-gray-200 rounded-lg space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium text-sm truncate mr-2">{sub.client.name}</span>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <span
+                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                          sub.isActive ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-600"
+                        }`}
+                      >
+                        {sub.isActive ? "有効" : "無効"}
+                      </span>
+                      <button
+                        onClick={() => handleToggleExcludeFromBatch(sub)}
+                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium cursor-pointer transition-colors ${
+                          sub.excludeFromBatch
+                            ? "bg-orange-100 text-orange-800 hover:bg-orange-200"
+                            : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                        }`}
+                      >
+                        {sub.excludeFromBatch ? "除外中" : "対象"}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 text-xs text-gray-500">
+                    {editingId === sub.id ? (
+                      <select
+                        value={editChannel}
+                        onChange={(e) => setEditChannel(e.target.value as DeliveryChannel)}
+                        className="px-2 py-1 border border-gray-300 rounded text-sm outline-none focus:ring-2 focus:ring-[#1a1a2e]"
+                      >
+                        <option value="email">メール</option>
+                        <option value="line">LINE</option>
+                        <option value="both">メール + LINE</option>
+                      </select>
+                    ) : (
+                      <span>{channelLabels[sub.deliveryChannel]}</span>
+                    )}
+                    <span>登録: {new Date(sub.createdAt).toLocaleDateString("ja-JP")}</span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5 pt-1">
+                    {editingId === sub.id ? (
+                      <>
+                        <button onClick={() => handleUpdate(sub.id)} className="px-3 py-1 text-xs bg-[#1a1a2e] text-white rounded hover:bg-[#16213e]">保存</button>
+                        <button onClick={() => setEditingId(null)} className="px-3 py-1 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200">戻す</button>
+                      </>
+                    ) : (
+                      <>
+                        <button onClick={() => handleTestSend(sub.id)} disabled={testSendingId === sub.id} className="px-3 py-1 text-xs bg-blue-50 text-blue-700 rounded hover:bg-blue-100 disabled:opacity-50">
+                          {testSendingId === sub.id ? "送信中..." : "テスト送信"}
+                        </button>
+                        <button onClick={() => { setEditingId(sub.id); setEditChannel(sub.deliveryChannel); }} className="px-3 py-1 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200">編集</button>
+                        <button onClick={() => handleToggleActive(sub)} className={`px-3 py-1 text-xs rounded ${sub.isActive ? "bg-yellow-50 text-yellow-700 hover:bg-yellow-100" : "bg-green-50 text-green-700 hover:bg-green-100"}`}>
+                          {sub.isActive ? "停止" : "有効化"}
+                        </button>
+                        <button onClick={() => handleDelete(sub.id)} className="px-3 py-1 text-xs bg-red-50 text-red-700 rounded hover:bg-red-100">解除</button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+            {/* デスクトップ: テーブル表示 */}
+            <div className="hidden lg:block overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-gray-100">
-                    <th className="text-left py-3 px-4 font-medium text-gray-600">
-                      クライアント名
-                    </th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-600">
-                      配信チャネル
-                    </th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-600">
-                      ステータス
-                    </th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-600">
-                      一括除外
-                    </th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-600">
-                      登録日
-                    </th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-600">
-                      操作
-                    </th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-600">クライアント名</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-600">配信チャネル</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-600">ステータス</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-600">一括除外</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-600">登録日</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-600">操作</th>
                   </tr>
                 </thead>
                 <tbody>
                   {subscriptions.map((sub) => (
-                    <tr
-                      key={sub.id}
-                      className="border-b border-gray-50 hover:bg-gray-50"
-                    >
-                      <td className="py-3 px-4 font-medium">
-                        {sub.client.name}
-                      </td>
+                    <tr key={sub.id} className="border-b border-gray-50 hover:bg-gray-50">
+                      <td className="py-3 px-4 font-medium">{sub.client.name}</td>
                       <td className="py-3 px-4">
                         {editingId === sub.id ? (
                           <select
                             value={editChannel}
-                            onChange={(e) =>
-                              setEditChannel(
-                                e.target.value as DeliveryChannel
-                              )
-                            }
+                            onChange={(e) => setEditChannel(e.target.value as DeliveryChannel)}
                             className="px-2 py-1 border border-gray-300 rounded text-sm outline-none focus:ring-2 focus:ring-[#1a1a2e]"
                           >
                             <option value="email">メール</option>
@@ -790,13 +834,7 @@ export default function BatchPage() {
                         )}
                       </td>
                       <td className="py-3 px-4">
-                        <span
-                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                            sub.isActive
-                              ? "bg-green-100 text-green-800"
-                              : "bg-gray-100 text-gray-600"
-                          }`}
-                        >
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${sub.isActive ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-600"}`}>
                           {sub.isActive ? "有効" : "無効"}
                         </span>
                       </td>
@@ -812,60 +850,24 @@ export default function BatchPage() {
                           {sub.excludeFromBatch ? "除外中" : "対象"}
                         </button>
                       </td>
-                      <td className="py-3 px-4">
-                        {new Date(sub.createdAt).toLocaleDateString("ja-JP")}
-                      </td>
+                      <td className="py-3 px-4">{new Date(sub.createdAt).toLocaleDateString("ja-JP")}</td>
                       <td className="py-3 px-4">
                         <div className="flex gap-2">
                           {editingId === sub.id ? (
                             <>
-                              <button
-                                onClick={() => handleUpdate(sub.id)}
-                                className="px-3 py-1 text-sm bg-[#1a1a2e] text-white rounded hover:bg-[#16213e]"
-                              >
-                                保存
-                              </button>
-                              <button
-                                onClick={() => setEditingId(null)}
-                                className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
-                              >
-                                戻す
-                              </button>
+                              <button onClick={() => handleUpdate(sub.id)} className="px-3 py-1 text-sm bg-[#1a1a2e] text-white rounded hover:bg-[#16213e]">保存</button>
+                              <button onClick={() => setEditingId(null)} className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200">戻す</button>
                             </>
                           ) : (
                             <>
-                              <button
-                                onClick={() => handleTestSend(sub.id)}
-                                disabled={testSendingId === sub.id}
-                                className="px-3 py-1 text-sm bg-blue-50 text-blue-700 rounded hover:bg-blue-100 disabled:opacity-50"
-                              >
+                              <button onClick={() => handleTestSend(sub.id)} disabled={testSendingId === sub.id} className="px-3 py-1 text-sm bg-blue-50 text-blue-700 rounded hover:bg-blue-100 disabled:opacity-50">
                                 {testSendingId === sub.id ? "送信中..." : "テスト送信"}
                               </button>
-                              <button
-                                onClick={() => {
-                                  setEditingId(sub.id);
-                                  setEditChannel(sub.deliveryChannel);
-                                }}
-                                className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
-                              >
-                                編集
-                              </button>
-                              <button
-                                onClick={() => handleToggleActive(sub)}
-                                className={`px-3 py-1 text-sm rounded ${
-                                  sub.isActive
-                                    ? "bg-yellow-50 text-yellow-700 hover:bg-yellow-100"
-                                    : "bg-green-50 text-green-700 hover:bg-green-100"
-                                }`}
-                              >
+                              <button onClick={() => { setEditingId(sub.id); setEditChannel(sub.deliveryChannel); }} className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200">編集</button>
+                              <button onClick={() => handleToggleActive(sub)} className={`px-3 py-1 text-sm rounded ${sub.isActive ? "bg-yellow-50 text-yellow-700 hover:bg-yellow-100" : "bg-green-50 text-green-700 hover:bg-green-100"}`}>
                                 {sub.isActive ? "停止" : "有効化"}
                               </button>
-                              <button
-                                onClick={() => handleDelete(sub.id)}
-                                className="px-3 py-1 text-sm bg-red-50 text-red-700 rounded hover:bg-red-100"
-                              >
-                                解除
-                              </button>
+                              <button onClick={() => handleDelete(sub.id)} className="px-3 py-1 text-sm bg-red-50 text-red-700 rounded hover:bg-red-100">解除</button>
                             </>
                           )}
                         </div>

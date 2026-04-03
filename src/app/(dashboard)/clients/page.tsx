@@ -181,7 +181,29 @@ export default function ClientsPage() {
           <p className="text-center py-8 text-gray-500">クライアントが登録されていません</p>
         ) : (
           <>
-            <div className="overflow-x-auto">
+            {/* モバイル: カード表示 */}
+            <div className="space-y-3 md:hidden">
+              {clients.map((client) => (
+                <Link
+                  key={client.id}
+                  href={`/clients/${client.id}`}
+                  className="block p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="font-medium text-sm truncate mr-2">{client.name}</span>
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium shrink-0 ${client.isActive ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-600"}`}>
+                      {client.isActive ? "有効" : "無効"}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3 text-xs text-gray-500">
+                    <span>{channelLabels[client.deliveryChannel]}</span>
+                    <span>サイト数: {client.sites.length}</span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+            {/* デスクトップ: テーブル表示 */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-gray-100">

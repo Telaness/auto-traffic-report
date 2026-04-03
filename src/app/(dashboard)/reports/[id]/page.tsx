@@ -161,7 +161,49 @@ export default function ReportDetailPage() {
       {reportData && (
         <>
           <Card title="トラフィックデータ">
-            <div className="overflow-x-auto">
+            {/* モバイル: カード表示 */}
+            <div className="space-y-3 md:hidden">
+              {[
+                { label: "セッション数", key: "sessions" as const },
+                { label: "ユーザー数", key: "totalUsers" as const },
+                { label: "PV数", key: "screenPageViews" as const },
+                { label: "直帰率", key: "bounceRate" as const, isPercent: true },
+                { label: "平均セッション時間(秒)", key: "averageSessionDuration" as const },
+              ].map((metric) => {
+                const current = reportData.currentMonth[metric.key];
+                const previous = reportData.previousMonth?.[metric.key];
+                const comp = reportData.comparison?.[metric.key];
+                const displayCurrent = metric.isPercent
+                  ? `${(current * 100).toFixed(1)}%`
+                  : Math.round(current).toLocaleString();
+                const displayPrevious =
+                  previous !== undefined && previous !== null
+                    ? metric.isPercent
+                      ? `${(previous * 100).toFixed(1)}%`
+                      : Math.round(previous).toLocaleString()
+                    : "-";
+                return (
+                  <div key={metric.key} className="flex items-center justify-between py-2 border-b border-gray-100">
+                    <div>
+                      <p className="text-sm text-gray-600">{metric.label}</p>
+                      <p className="text-lg font-bold">{displayCurrent}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs text-gray-400">前期: {displayPrevious}</p>
+                      {comp ? (
+                        <p className={`text-sm font-medium ${comp.rate >= 0 ? "text-green-600" : "text-red-600"}`}>
+                          {comp.rate >= 0 ? "↑" : "↓"} {formatRate(comp.rate)}
+                        </p>
+                      ) : (
+                        <p className="text-sm text-gray-400">-</p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            {/* デスクトップ: テーブル表示 */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-gray-100">
@@ -191,7 +233,6 @@ export default function ReportDetailPage() {
                           ? `${(previous * 100).toFixed(1)}%`
                           : Math.round(previous).toLocaleString()
                         : "-";
-
                     return (
                       <tr key={metric.key} className="border-b border-gray-50">
                         <td className="py-3 px-4">{metric.label}</td>
@@ -288,28 +329,43 @@ export default function ReportDetailPage() {
                 </div>
               </div>
               {reportData.searchConsole.keywords.length > 0 && (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-gray-100">
-                        <th className="text-left py-2 px-3 font-medium text-gray-600">キーワード</th>
-                        <th className="text-right py-2 px-3 font-medium text-gray-600">クリック</th>
-                        <th className="text-right py-2 px-3 font-medium text-gray-600">CTR</th>
-                        <th className="text-right py-2 px-3 font-medium text-gray-600">順位</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {reportData.searchConsole.keywords.map((kw: { keyword: string; clicks: number; ctr: number; position: number }) => (
-                        <tr key={kw.keyword} className="border-b border-gray-50">
-                          <td className="py-2 px-3 font-medium">{kw.keyword}</td>
-                          <td className="py-2 px-3 text-right">{kw.clicks.toLocaleString()}</td>
-                          <td className="py-2 px-3 text-right">{(kw.ctr * 100).toFixed(2)}%</td>
-                          <td className="py-2 px-3 text-right">{kw.position.toFixed(1)}</td>
+                <>
+                  {/* モバイル: リスト表示 */}
+                  <div className="space-y-2 md:hidden">
+                    {reportData.searchConsole.keywords.map((kw: { keyword: string; clicks: number; ctr: number; position: number }) => (
+                      <div key={kw.keyword} className="flex items-center justify-between py-2 border-b border-gray-100">
+                        <span className="text-sm font-medium truncate mr-3">{kw.keyword}</span>
+                        <div className="flex items-center gap-3 text-xs text-gray-500 shrink-0">
+                          <span>{kw.clicks}click</span>
+                          <span>{kw.position.toFixed(1)}位</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  {/* デスクトップ: テーブル表示 */}
+                  <div className="hidden md:block overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-gray-100">
+                          <th className="text-left py-2 px-3 font-medium text-gray-600">キーワード</th>
+                          <th className="text-right py-2 px-3 font-medium text-gray-600">クリック</th>
+                          <th className="text-right py-2 px-3 font-medium text-gray-600">CTR</th>
+                          <th className="text-right py-2 px-3 font-medium text-gray-600">順位</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody>
+                        {reportData.searchConsole.keywords.map((kw: { keyword: string; clicks: number; ctr: number; position: number }) => (
+                          <tr key={kw.keyword} className="border-b border-gray-50">
+                            <td className="py-2 px-3 font-medium">{kw.keyword}</td>
+                            <td className="py-2 px-3 text-right">{kw.clicks.toLocaleString()}</td>
+                            <td className="py-2 px-3 text-right">{(kw.ctr * 100).toFixed(2)}%</td>
+                            <td className="py-2 px-3 text-right">{kw.position.toFixed(1)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
               )}
             </Card>
           )}
