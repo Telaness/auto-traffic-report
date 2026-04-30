@@ -7,10 +7,11 @@ export const maxDuration = 60;
 export const POST = async (request: NextRequest) => {
   try {
     const body = await request.json();
-    const { subscriptionId, startDate, endDate } = body as {
+    const { subscriptionId, startDate, endDate, siteIds } = body as {
       subscriptionId: string;
       startDate?: string;
       endDate?: string;
+      siteIds?: string[];
     };
 
     if (!subscriptionId) {
@@ -21,7 +22,7 @@ export const POST = async (request: NextRequest) => {
     }
 
     const customRange = startDate && endDate ? { startDate, endDate } : undefined;
-    const results = await runSingleBatch(subscriptionId, customRange);
+    const results = await runSingleBatch(subscriptionId, customRange, siteIds);
     return NextResponse.json({
       message: "個別バッチ処理が完了しました",
       results,

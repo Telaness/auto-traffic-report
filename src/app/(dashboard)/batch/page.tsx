@@ -76,6 +76,9 @@ export default function BatchPage() {
   // 個別送信ダイアログ
   const [showSingleDialog, setShowSingleDialog] = useState(false);
   const [selectedSubscriptionId, setSelectedSubscriptionId] = useState("");
+  const [singleSites, setSingleSites] = useState<Array<{ id: string; siteName: string; siteUrl: string }>>([]);
+  const [selectedSiteIds, setSelectedSiteIds] = useState<string[]>([]);
+  const [isLoadingSites, setIsLoadingSites] = useState(false);
 
   // 自動実行設定
   const [autoScheduleEnabled, setAutoScheduleEnabled] = useState(false);
@@ -184,6 +187,39 @@ export default function BatchPage() {
       void load();
     }
   }, [showForm, fetchAvailableClients]);
+
+  useEffect(() => {
+    if (!selectedSubscriptionId) {
+      setSingleSites([]);
+      setSelectedSiteIds([]);
+      return;
+    }
+    const sub = subscriptions.find((s) => s.id === selectedSubscriptionId);
+    if (!sub) return;
+    const load = async () => {
+      setIsLoadingSites(true);
+      try {
+        const res = await fetch(`/api/sites?clientId=${sub.clientId}`);
+        if (!res.ok) {
+          setSingleSites([]);
+          setSelectedSiteIds([]);
+          return;
+        }
+        const data = await res.json();
+        const sites = (data as Array<{ id: string; siteName: string; siteUrl: string; isActive: boolean }>)
+          .filter((s) => s.isActive)
+          .map((s) => ({ id: s.id, siteName: s.siteName, siteUrl: s.siteUrl }));
+        setSingleSites(sites);
+        setSelectedSiteIds(sites.map((s) => s.id));
+      } catch {
+        setSingleSites([]);
+        setSelectedSiteIds([]);
+      } finally {
+        setIsLoadingSites(false);
+      }
+    };
+    void load();
+  }, [selectedSubscriptionId, subscriptions]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -299,16 +335,22 @@ export default function BatchPage() {
   // 個別送信: 実行
   const handleSingleRun = async () => {
     if (!selectedSubscriptionId) return;
+    if (selectedSiteIds.length === 0) {
+      alert("送信対象のサイトを1つ以上選択してください");
+      return;
+    }
     setShowSingleDialog(false);
     setSingleRunningId(selectedSubscriptionId);
     try {
       const dateRange = getDateRange();
+      const sendAll = selectedSiteIds.length === singleSites.length;
       const res = await fetch("/api/batch/run-single", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           subscriptionId: selectedSubscriptionId,
           ...dateRange,
+          ...(sendAll ? {} : { siteIds: selectedSiteIds }),
         }),
       });
       const data = await res.json();
@@ -324,6 +366,8 @@ export default function BatchPage() {
     } finally {
       setSingleRunningId(null);
       setSelectedSubscriptionId("");
+      setSelectedSiteIds([]);
+      setSingleSites([]);
     }
   };
 
@@ -581,14 +625,14 @@ export default function BatchPage() {
       {/* 個別送信ダイアログ */}
       {showSingleDialog && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-xl max-w-md w-full mx-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full mx-4 max-h-[90vh] flex flex-col">
             <div className="p-6 border-b border-gray-200">
               <h3 className="text-lg font-bold text-gray-900">個別送信</h3>
               <p className="text-sm text-gray-500 mt-1">
-                レポートを生成・送信する顧客を選択してください。
+                レポートを生成・送信する顧客とサイトを選択してください。
               </p>
             </div>
-            <div className="p-6 space-y-4">
+            <div className="p-6 space-y-4 overflow-y-auto flex-1">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">顧客</label>
                 <select
@@ -604,18 +648,78 @@ export default function BatchPage() {
                   ))}
                 </select>
               </div>
+              {selectedSubscriptionId && (
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-sm font-medium text-gray-700">送信対象サイト</label>
+                    {singleSites.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setSelectedSiteIds(
+                            selectedSiteIds.length === singleSites.length
+                              ? []
+                              : singleSites.map((s) => s.id)
+                          )
+                        }
+                        className="text-xs text-blue-600 hover:underline"
+                      >
+                        {selectedSiteIds.length === singleSites.length ? "全解除" : "全選択"}
+                      </button>
+                    )}
+                  </div>
+                  {isLoadingSites ? (
+                    <p className="text-sm text-gray-500 py-2">読込中...</p>
+                  ) : singleSites.length === 0 ? (
+                    <p className="text-sm text-gray-500 py-2">有効なサイトがありません</p>
+                  ) : (
+                    <div className="border border-gray-200 rounded-lg divide-y divide-gray-100 max-h-48 overflow-y-auto">
+                      {singleSites.map((site) => (
+                        <label
+                          key={site.id}
+                          className="flex items-start gap-3 px-3 py-2 cursor-pointer hover:bg-gray-50"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedSiteIds.includes(site.id)}
+                            onChange={(e) => {
+                              setSelectedSiteIds((prev) =>
+                                e.target.checked
+                                  ? [...prev, site.id]
+                                  : prev.filter((id) => id !== site.id)
+                              );
+                            }}
+                            className="mt-1"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-medium text-gray-900 truncate">
+                              {site.siteName}
+                            </div>
+                            <div className="text-xs text-gray-400 truncate">{site.siteUrl}</div>
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
               {periodSelector}
             </div>
             <div className="p-4 border-t border-gray-200 flex justify-end gap-3">
               <button
-                onClick={() => setShowSingleDialog(false)}
+                onClick={() => {
+                  setShowSingleDialog(false);
+                  setSelectedSubscriptionId("");
+                  setSelectedSiteIds([]);
+                  setSingleSites([]);
+                }}
                 className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
               >
                 キャンセル
               </button>
               <button
                 onClick={handleSingleRun}
-                disabled={!selectedSubscriptionId}
+                disabled={!selectedSubscriptionId || selectedSiteIds.length === 0}
                 className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
               >
                 実行

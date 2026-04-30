@@ -142,7 +142,8 @@ interface CustomRange {
 
 export const runSingleBatch = async (
   subscriptionId: string,
-  customRange?: CustomRange
+  customRange?: CustomRange,
+  siteIds?: string[]
 ): Promise<BatchResult> => {
   const subscription = await prisma.monthlyBatchSubscription.findUnique({
     where: { id: subscriptionId },
@@ -157,15 +158,19 @@ export const runSingleBatch = async (
     throw new Error("バッチ登録が見つかりません");
   }
 
+  const targetSites = siteIds && siteIds.length > 0
+    ? subscription.client.sites.filter((s) => siteIds.includes(s.id))
+    : subscription.client.sites;
+
   const now = new Date();
   const results: BatchResult = {
-    total: subscription.client.sites.length,
+    total: targetSites.length,
     success: 0,
     failed: 0,
     errors: [],
   };
 
-  for (const site of subscription.client.sites) {
+  for (const site of targetSites) {
     try {
       const reportId = await generateReportForSite(site.id, now, customRange);
       await deliverReport(reportId);

@@ -114,6 +114,22 @@ export default function ClientDetailPage() {
     }
   };
 
+  const handleHardDelete = async () => {
+    if (!client) return;
+    if (client.sites.length > 0) {
+      alert("サイトが登録されているため削除できません。先にサイトを全て削除してください。");
+      return;
+    }
+    if (!confirm(`本当に「${client.name}」を完全に削除しますか？\n\nこの操作は取り消せません。`)) return;
+    const res = await fetch(`/api/clients/${params.id}?hard=true`, { method: "DELETE" });
+    if (res.ok) {
+      router.push("/clients");
+    } else {
+      const data = await res.json().catch(() => ({}));
+      alert(`削除に失敗しました${data.error ? `: ${data.error}` : ""}`);
+    }
+  };
+
   const handleAddSite = async (e: FormEvent) => {
     e.preventDefault();
     const res = await fetch("/api/sites", {
@@ -275,6 +291,14 @@ export default function ClientDetailPage() {
             className="px-4 py-2 bg-red-50 text-red-700 rounded-lg hover:bg-red-100 transition-colors"
           >
             無効化
+          </button>
+          <button
+            onClick={handleHardDelete}
+            disabled={client.sites.length > 0}
+            title={client.sites.length > 0 ? "サイトを全て削除してから実行してください" : ""}
+            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            削除
           </button>
         </div>
       </div>
