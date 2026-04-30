@@ -114,6 +114,20 @@ export default function ClientDetailPage() {
     }
   };
 
+  const handleDeleteSite = async (siteId: string, siteName: string, hasReports: boolean) => {
+    const message = hasReports
+      ? `本当に「${siteName}」を削除しますか？\n\n過去に生成されたレポートも全て削除されます。\nこの操作は取り消せません。`
+      : `本当に「${siteName}」を削除しますか？\n\nこの操作は取り消せません。`;
+    if (!confirm(message)) return;
+    const res = await fetch(`/api/sites/${siteId}`, { method: "DELETE" });
+    if (res.ok) {
+      fetchClient();
+    } else {
+      const data = await res.json().catch(() => ({}));
+      alert(`削除に失敗しました${data.error ? `: ${data.error}` : ""}`);
+    }
+  };
+
   const handleHardDelete = async () => {
     if (!client) return;
     if (client.sites.length > 0) {
@@ -688,12 +702,20 @@ export default function ClientDetailPage() {
                         </div>
                       </div>
                     ) : (
-                      <button
-                        onClick={() => setReportFormSiteId(site.id)}
-                        className="w-full px-3 py-1.5 text-sm bg-[#1a1a2e] text-white rounded-lg hover:bg-[#16213e]"
-                      >
-                        レポート生成
-                      </button>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setReportFormSiteId(site.id)}
+                          className="flex-1 px-3 py-1.5 text-sm bg-[#1a1a2e] text-white rounded-lg hover:bg-[#16213e]"
+                        >
+                          レポート生成
+                        </button>
+                        <button
+                          onClick={() => handleDeleteSite(site.id, site.siteName, site.reports.length > 0)}
+                          className="px-3 py-1.5 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700"
+                        >
+                          削除
+                        </button>
+                      </div>
                     )}
                   </div>
                 );
@@ -771,12 +793,20 @@ export default function ClientDetailPage() {
                               </div>
                             </div>
                           ) : (
-                            <button
-                              onClick={() => setReportFormSiteId(site.id)}
-                              className="px-3 py-1.5 text-sm bg-[#1a1a2e] text-white rounded-lg hover:bg-[#16213e] whitespace-nowrap"
-                            >
-                              レポート生成
-                            </button>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => setReportFormSiteId(site.id)}
+                                className="px-3 py-1.5 text-sm bg-[#1a1a2e] text-white rounded-lg hover:bg-[#16213e] whitespace-nowrap"
+                              >
+                                レポート生成
+                              </button>
+                              <button
+                                onClick={() => handleDeleteSite(site.id, site.siteName, site.reports.length > 0)}
+                                className="px-3 py-1.5 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 whitespace-nowrap"
+                              >
+                                削除
+                              </button>
+                            </div>
                           )}
                         </td>
                       </tr>
