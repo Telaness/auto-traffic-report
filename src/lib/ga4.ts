@@ -36,6 +36,45 @@ interface GA4DetailedData {
   browsers: GA4BrowserData[];
 }
 
+const RETRYABLE_STATUSES = [429, 500, 502, 503, 504];
+
+const isRetryableError = (error: unknown): boolean => {
+  if (!(error instanceof Error)) return false;
+  const err = error as Error & {
+    code?: number | string;
+    status?: number;
+    response?: { status?: number };
+  };
+  const statusFromResponse = err.response?.status;
+  const statusFromCode = typeof err.code === "number" ? err.code : undefined;
+  const status = statusFromResponse ?? err.status ?? statusFromCode;
+  if (status && RETRYABLE_STATUSES.includes(status)) return true;
+  return /\b(429|500|502|503|504)\b/.test(err.message);
+};
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+export const withRetry = async <T>(
+  fn: () => Promise<T>,
+  options: { maxAttempts?: number; baseDelayMs?: number } = {}
+): Promise<T> => {
+  const { maxAttempts = 3, baseDelayMs = 500 } = options;
+
+  const attempt = async (n: number): Promise<T> => {
+    try {
+      return await fn();
+    } catch (error) {
+      if (n >= maxAttempts || !isRetryableError(error)) {
+        throw error;
+      }
+      await sleep(baseDelayMs * Math.pow(2, n - 1));
+      return attempt(n + 1);
+    }
+  };
+
+  return attempt(1);
+};
+
 const getAnalyticsClient = async () => {
   const credentials = process.env.GOOGLE_SERVICE_ACCOUNT_KEY
     ? JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY)
@@ -63,19 +102,21 @@ export const fetchGA4Data = async (
   const analyticsData = await getAnalyticsClient();
   const normalizedPropertyId = normalizePropertyId(propertyId);
 
-  const response = await analyticsData.properties.runReport({
-    property: normalizedPropertyId,
-    requestBody: {
-      dateRanges: [{ startDate, endDate }],
-      metrics: [
-        { name: "sessions" },
-        { name: "totalUsers" },
-        { name: "screenPageViews" },
-        { name: "bounceRate" },
-        { name: "averageSessionDuration" },
-      ],
-    },
-  });
+  const response = await withRetry(() =>
+    analyticsData.properties.runReport({
+      property: normalizedPropertyId,
+      requestBody: {
+        dateRanges: [{ startDate, endDate }],
+        metrics: [
+          { name: "sessions" },
+          { name: "totalUsers" },
+          { name: "screenPageViews" },
+          { name: "bounceRate" },
+          { name: "averageSessionDuration" },
+        ],
+      },
+    })
+  );
 
   const row = response.data.rows?.[0];
   const metricValues = row?.metricValues ?? [];
@@ -99,62 +140,72 @@ export const fetchGA4DetailedData = async (
 
   const [metricsResponse, regionResponse, sourceResponse, deviceResponse, browserResponse] = await Promise.all([
     // 基本メトリクス
-    analyticsData.properties.runReport({
-      property: normalizedPropertyId,
-      requestBody: {
-        dateRanges: [{ startDate, endDate }],
-        metrics: [
-          { name: "sessions" },
-          { name: "totalUsers" },
-          { name: "screenPageViews" },
-          { name: "bounceRate" },
-          { name: "averageSessionDuration" },
-        ],
-      },
-    }),
+    withRetry(() =>
+      analyticsData.properties.runReport({
+        property: normalizedPropertyId,
+        requestBody: {
+          dateRanges: [{ startDate, endDate }],
+          metrics: [
+            { name: "sessions" },
+            { name: "totalUsers" },
+            { name: "screenPageViews" },
+            { name: "bounceRate" },
+            { name: "averageSessionDuration" },
+          ],
+        },
+      })
+    ),
     // 地域別
-    analyticsData.properties.runReport({
-      property: normalizedPropertyId,
-      requestBody: {
-        dateRanges: [{ startDate, endDate }],
-        dimensions: [{ name: "region" }],
-        metrics: [{ name: "sessions" }],
-        orderBys: [{ metric: { metricName: "sessions" }, desc: true }],
-        limit: "10",
-      },
-    }),
+    withRetry(() =>
+      analyticsData.properties.runReport({
+        property: normalizedPropertyId,
+        requestBody: {
+          dateRanges: [{ startDate, endDate }],
+          dimensions: [{ name: "region" }],
+          metrics: [{ name: "sessions" }],
+          orderBys: [{ metric: { metricName: "sessions" }, desc: true }],
+          limit: "10",
+        },
+      })
+    ),
     // 流入経路
-    analyticsData.properties.runReport({
-      property: normalizedPropertyId,
-      requestBody: {
-        dateRanges: [{ startDate, endDate }],
-        dimensions: [{ name: "sessionSource" }],
-        metrics: [{ name: "sessions" }],
-        orderBys: [{ metric: { metricName: "sessions" }, desc: true }],
-        limit: "10",
-      },
-    }),
+    withRetry(() =>
+      analyticsData.properties.runReport({
+        property: normalizedPropertyId,
+        requestBody: {
+          dateRanges: [{ startDate, endDate }],
+          dimensions: [{ name: "sessionSource" }],
+          metrics: [{ name: "sessions" }],
+          orderBys: [{ metric: { metricName: "sessions" }, desc: true }],
+          limit: "10",
+        },
+      })
+    ),
     // デバイスカテゴリ
-    analyticsData.properties.runReport({
-      property: normalizedPropertyId,
-      requestBody: {
-        dateRanges: [{ startDate, endDate }],
-        dimensions: [{ name: "deviceCategory" }],
-        metrics: [{ name: "sessions" }],
-        orderBys: [{ metric: { metricName: "sessions" }, desc: true }],
-      },
-    }),
+    withRetry(() =>
+      analyticsData.properties.runReport({
+        property: normalizedPropertyId,
+        requestBody: {
+          dateRanges: [{ startDate, endDate }],
+          dimensions: [{ name: "deviceCategory" }],
+          metrics: [{ name: "sessions" }],
+          orderBys: [{ metric: { metricName: "sessions" }, desc: true }],
+        },
+      })
+    ),
     // ブラウザ
-    analyticsData.properties.runReport({
-      property: normalizedPropertyId,
-      requestBody: {
-        dateRanges: [{ startDate, endDate }],
-        dimensions: [{ name: "browser" }],
-        metrics: [{ name: "sessions" }],
-        orderBys: [{ metric: { metricName: "sessions" }, desc: true }],
-        limit: "5",
-      },
-    }),
+    withRetry(() =>
+      analyticsData.properties.runReport({
+        property: normalizedPropertyId,
+        requestBody: {
+          dateRanges: [{ startDate, endDate }],
+          dimensions: [{ name: "browser" }],
+          metrics: [{ name: "sessions" }],
+          orderBys: [{ metric: { metricName: "sessions" }, desc: true }],
+          limit: "5",
+        },
+      })
+    ),
   ]);
 
   const metricsRow = metricsResponse.data.rows?.[0];
@@ -257,16 +308,18 @@ export const fetchSearchConsoleData = async (
 
   for (const variant of siteUrlVariants) {
     try {
-      const response = await searchConsole.searchanalytics.query({
-        siteUrl: variant,
-        requestBody: {
-          startDate,
-          endDate,
-          dimensions: ["query"],
-          rowLimit: 10,
-          type: "web",
-        },
-      });
+      const response = await withRetry(() =>
+        searchConsole.searchanalytics.query({
+          siteUrl: variant,
+          requestBody: {
+            startDate,
+            endDate,
+            dimensions: ["query"],
+            rowLimit: 10,
+            type: "web",
+          },
+        })
+      );
 
     const rows = response.data.rows ?? [];
 
