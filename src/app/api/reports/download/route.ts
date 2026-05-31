@@ -11,8 +11,9 @@ export const maxDuration = 120;
 export const POST = async (request: NextRequest) => {
   try {
     const body = await request.json();
-    const { clientId, startDate, endDate } = body as {
+    const { clientId, siteIds, startDate, endDate } = body as {
       clientId: string;
+      siteIds?: string[];
       startDate?: string;
       endDate?: string;
     };
@@ -35,10 +36,15 @@ export const POST = async (request: NextRequest) => {
       );
     }
 
+    const siteFilter: Record<string, unknown> = { clientId };
+    if (siteIds && siteIds.length > 0) {
+      siteFilter.id = { in: siteIds };
+    }
+
     // 期間指定がある場合はcreatedAtで絞り込み、ない場合は前月
     const where: Record<string, unknown> = {
       reportData: { not: null },
-      site: { clientId },
+      site: siteFilter,
     };
 
     if (startDate && endDate) {

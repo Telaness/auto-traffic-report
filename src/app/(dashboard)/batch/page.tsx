@@ -48,6 +48,25 @@ const channelLabels: Record<DeliveryChannel, string> = {
   both: "メール + LINE",
 };
 
+interface ActiveSite {
+  id: string;
+  siteName: string;
+  siteUrl: string;
+}
+
+const fetchActiveSitesByClient = async (clientId: string): Promise<ActiveSite[]> => {
+  try {
+    const res = await fetch(`/api/sites?clientId=${clientId}`);
+    if (!res.ok) return [];
+    const data = await res.json();
+    return (data as Array<{ id: string; siteName: string; siteUrl: string; isActive: boolean }>)
+      .filter((s) => s.isActive)
+      .map((s) => ({ id: s.id, siteName: s.siteName, siteUrl: s.siteUrl }));
+  } catch {
+    return [];
+  }
+};
+
 export default function BatchPage() {
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [pagination, setPagination] = useState<PaginationData>({
@@ -87,6 +106,9 @@ export default function BatchPage() {
   // PDF取得ダイアログ
   const [showPdfDialog, setShowPdfDialog] = useState(false);
   const [pdfClientId, setPdfClientId] = useState("");
+  const [pdfSites, setPdfSites] = useState<Array<{ id: string; siteName: string; siteUrl: string }>>([]);
+  const [pdfSelectedSiteIds, setPdfSelectedSiteIds] = useState<string[]>([]);
+  const [isLoadingPdfSites, setIsLoadingPdfSites] = useState(false);
   const [isPdfDownloading, setIsPdfDownloading] = useState(false);
 
   // 期間指定（一括・個別共通）
@@ -199,27 +221,34 @@ export default function BatchPage() {
     const load = async () => {
       setIsLoadingSites(true);
       try {
-        const res = await fetch(`/api/sites?clientId=${sub.clientId}`);
-        if (!res.ok) {
-          setSingleSites([]);
-          setSelectedSiteIds([]);
-          return;
-        }
-        const data = await res.json();
-        const sites = (data as Array<{ id: string; siteName: string; siteUrl: string; isActive: boolean }>)
-          .filter((s) => s.isActive)
-          .map((s) => ({ id: s.id, siteName: s.siteName, siteUrl: s.siteUrl }));
+        const sites = await fetchActiveSitesByClient(sub.clientId);
         setSingleSites(sites);
         setSelectedSiteIds(sites.map((s) => s.id));
-      } catch {
-        setSingleSites([]);
-        setSelectedSiteIds([]);
       } finally {
         setIsLoadingSites(false);
       }
     };
     void load();
   }, [selectedSubscriptionId, subscriptions]);
+
+  useEffect(() => {
+    if (!pdfClientId) {
+      setPdfSites([]);
+      setPdfSelectedSiteIds([]);
+      return;
+    }
+    const load = async () => {
+      setIsLoadingPdfSites(true);
+      try {
+        const sites = await fetchActiveSitesByClient(pdfClientId);
+        setPdfSites(sites);
+        setPdfSelectedSiteIds(sites.map((s) => s.id));
+      } finally {
+        setIsLoadingPdfSites(false);
+      }
+    };
+    void load();
+  }, [pdfClientId]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -398,14 +427,20 @@ export default function BatchPage() {
   // PDF取得: 実行
   const handlePdfDownload = async () => {
     if (!pdfClientId) return;
+    if (pdfSelectedSiteIds.length === 0) {
+      alert("ダウンロード対象のサイトを1つ以上選択してください");
+      return;
+    }
     setIsPdfDownloading(true);
     try {
       const dateRange = getDateRange();
+      const sendAll = pdfSelectedSiteIds.length === pdfSites.length;
       const res = await fetch("/api/reports/download", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           clientId: pdfClientId,
+          ...(sendAll ? {} : { siteIds: pdfSelectedSiteIds }),
           ...dateRange,
         }),
       });
@@ -732,14 +767,14 @@ export default function BatchPage() {
       {/* PDF取得ダイアログ */}
       {showPdfDialog && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-xl max-w-md w-full mx-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full mx-4 max-h-[90vh] flex flex-col">
             <div className="p-6 border-b border-gray-200">
               <h3 className="text-lg font-bold text-gray-900">レポートPDF取得</h3>
               <p className="text-sm text-gray-500 mt-1">
-                クライアントと期間を選択してPDFをダウンロードします。
+                クライアント・サイトと期間を選択してPDFをダウンロードします。
               </p>
             </div>
-            <div className="p-6 space-y-4">
+            <div className="p-6 space-y-4 overflow-y-auto flex-1">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">クライアント</label>
                 <select
@@ -755,18 +790,78 @@ export default function BatchPage() {
                   ))}
                 </select>
               </div>
+              {pdfClientId && (
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-sm font-medium text-gray-700">対象サイト</label>
+                    {pdfSites.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setPdfSelectedSiteIds(
+                            pdfSelectedSiteIds.length === pdfSites.length
+                              ? []
+                              : pdfSites.map((s) => s.id)
+                          )
+                        }
+                        className="text-xs text-emerald-600 hover:underline"
+                      >
+                        {pdfSelectedSiteIds.length === pdfSites.length ? "全解除" : "全選択"}
+                      </button>
+                    )}
+                  </div>
+                  {isLoadingPdfSites ? (
+                    <p className="text-sm text-gray-500 py-2">読込中...</p>
+                  ) : pdfSites.length === 0 ? (
+                    <p className="text-sm text-gray-500 py-2">有効なサイトがありません</p>
+                  ) : (
+                    <div className="border border-gray-200 rounded-lg divide-y divide-gray-100 max-h-48 overflow-y-auto">
+                      {pdfSites.map((site) => (
+                        <label
+                          key={site.id}
+                          className="flex items-start gap-3 px-3 py-2 cursor-pointer hover:bg-gray-50"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={pdfSelectedSiteIds.includes(site.id)}
+                            onChange={(e) => {
+                              setPdfSelectedSiteIds((prev) =>
+                                e.target.checked
+                                  ? [...prev, site.id]
+                                  : prev.filter((id) => id !== site.id)
+                              );
+                            }}
+                            className="mt-1"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-medium text-gray-900 truncate">
+                              {site.siteName}
+                            </div>
+                            <div className="text-xs text-gray-400 truncate">{site.siteUrl}</div>
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
               {periodSelector}
             </div>
             <div className="p-4 border-t border-gray-200 flex justify-end gap-3">
               <button
-                onClick={() => setShowPdfDialog(false)}
+                onClick={() => {
+                  setShowPdfDialog(false);
+                  setPdfClientId("");
+                  setPdfSites([]);
+                  setPdfSelectedSiteIds([]);
+                }}
                 className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
               >
                 キャンセル
               </button>
               <button
                 onClick={handlePdfDownload}
-                disabled={!pdfClientId || isPdfDownloading}
+                disabled={!pdfClientId || pdfSelectedSiteIds.length === 0 || isPdfDownloading}
                 className="px-6 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50"
               >
                 {isPdfDownloading ? "ダウンロード中..." : "ダウンロード"}
