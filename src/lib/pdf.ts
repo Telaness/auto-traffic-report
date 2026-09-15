@@ -1,27 +1,15 @@
 import puppeteer from "puppeteer-core";
 
 const getBrowser = async () => {
+  // puppeteer-core はChromium本体を同梱しないため、ブラウザの場所を明示する必要がある。
+  // 本番/Docker環境では PUPPETEER_EXECUTABLE_PATH を指定し、未指定時はインストール済みChromeを利用する。
+  const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
+
   return puppeteer.launch({
     headless: true,
     args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    ...(executablePath ? { executablePath } : { channel: "chrome" }),
   });
-};
-
-export const convertHtmlToPdf = async (html: string): Promise<Buffer> => {
-  const browser = await getBrowser();
-
-  try {
-    const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: "networkidle0" });
-    const pdfBuffer = await page.pdf({
-      format: "A4",
-      printBackground: true,
-      margin: { top: "20mm", right: "15mm", bottom: "20mm", left: "15mm" },
-    });
-    return Buffer.from(pdfBuffer);
-  } finally {
-    await browser.close();
-  }
 };
 
 export const convertHtmlsToPdfs = async (

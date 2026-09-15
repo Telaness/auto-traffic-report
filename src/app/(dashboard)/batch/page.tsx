@@ -103,14 +103,6 @@ export default function BatchPage() {
   const [autoScheduleEnabled, setAutoScheduleEnabled] = useState(false);
   const [isTogglingAutoSchedule, setIsTogglingAutoSchedule] = useState(false);
 
-  // PDF取得ダイアログ
-  const [showPdfDialog, setShowPdfDialog] = useState(false);
-  const [pdfClientId, setPdfClientId] = useState("");
-  const [pdfSites, setPdfSites] = useState<Array<{ id: string; siteName: string; siteUrl: string }>>([]);
-  const [pdfSelectedSiteIds, setPdfSelectedSiteIds] = useState<string[]>([]);
-  const [isLoadingPdfSites, setIsLoadingPdfSites] = useState(false);
-  const [isPdfDownloading, setIsPdfDownloading] = useState(false);
-
   // 期間指定（一括・個別共通）
   type PeriodType = "lastMonth" | "month" | "custom";
   const [periodType, setPeriodType] = useState<PeriodType>("lastMonth");
@@ -230,25 +222,6 @@ export default function BatchPage() {
     };
     void load();
   }, [selectedSubscriptionId, subscriptions]);
-
-  useEffect(() => {
-    if (!pdfClientId) {
-      setPdfSites([]);
-      setPdfSelectedSiteIds([]);
-      return;
-    }
-    const load = async () => {
-      setIsLoadingPdfSites(true);
-      try {
-        const sites = await fetchActiveSitesByClient(pdfClientId);
-        setPdfSites(sites);
-        setPdfSelectedSiteIds(sites.map((s) => s.id));
-      } finally {
-        setIsLoadingPdfSites(false);
-      }
-    };
-    void load();
-  }, [pdfClientId]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -424,52 +397,6 @@ export default function BatchPage() {
     }
   };
 
-  // PDF取得: 実行
-  const handlePdfDownload = async () => {
-    if (!pdfClientId) return;
-    if (pdfSelectedSiteIds.length === 0) {
-      alert("ダウンロード対象のサイトを1つ以上選択してください");
-      return;
-    }
-    setIsPdfDownloading(true);
-    try {
-      const dateRange = getDateRange();
-      const sendAll = pdfSelectedSiteIds.length === pdfSites.length;
-      const res = await fetch("/api/reports/download", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          clientId: pdfClientId,
-          ...(sendAll ? {} : { siteIds: pdfSelectedSiteIds }),
-          ...dateRange,
-        }),
-      });
-
-      if (!res.ok) {
-        const data = await res.json();
-        alert(data.error ?? "ダウンロードに失敗しました");
-        return;
-      }
-
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      const disposition = res.headers.get("Content-Disposition");
-      const fileNameMatch = disposition?.match(/filename\*=UTF-8''(.+)/);
-      a.download = fileNameMatch ? decodeURIComponent(fileNameMatch[1]) : "レポート.pdf";
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-      setShowPdfDialog(false);
-    } catch {
-      alert("ダウンロードに失敗しました");
-    } finally {
-      setIsPdfDownloading(false);
-    }
-  };
-
   const activeSubscriptions = subscriptions.filter((s) => s.isActive);
 
   const resetPeriod = () => {
@@ -488,7 +415,7 @@ export default function BatchPage() {
             onClick={() => setPeriodType(type)}
             className={`px-3 py-1.5 text-sm rounded-lg border transition-colors ${
               periodType === type
-                ? "bg-[#1a1a2e] text-white border-[#1a1a2e]"
+                ? "bg-primary text-white border-primary"
                 : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
             }`}
           >
@@ -501,7 +428,7 @@ export default function BatchPage() {
           type="month"
           value={selectedMonth}
           onChange={(e) => setSelectedMonth(e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1a1a2e] focus:border-transparent outline-none"
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
         />
       )}
       {periodType === "custom" && (
@@ -512,7 +439,7 @@ export default function BatchPage() {
               type="date"
               value={customStartDate}
               onChange={(e) => setCustomStartDate(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1a1a2e] focus:border-transparent outline-none"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
             />
           </div>
           <div>
@@ -521,7 +448,7 @@ export default function BatchPage() {
               type="date"
               value={customEndDate}
               onChange={(e) => setCustomEndDate(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1a1a2e] focus:border-transparent outline-none"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
             />
           </div>
         </div>
@@ -540,7 +467,7 @@ export default function BatchPage() {
                 onClick={handleToggleAutoSchedule}
                 disabled={isTogglingAutoSchedule}
                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50 ${
-                  autoScheduleEnabled ? "bg-green-500" : "bg-gray-300"
+                  autoScheduleEnabled ? "bg-primary" : "bg-gray-300"
                 }`}
               >
                 <span
@@ -557,20 +484,9 @@ export default function BatchPage() {
         </div>
         <div className="flex flex-wrap gap-2">
           <button
-            onClick={() => {
-              setPdfClientId("");
-              resetPeriod();
-              setShowPdfDialog(true);
-            }}
-            disabled={isPdfDownloading}
-            className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50"
-          >
-            {isPdfDownloading ? "ダウンロード中..." : "PDF取得"}
-          </button>
-          <button
             onClick={handleBatchConfirmOpen}
             disabled={isBatchRunning || isFetchingTargets}
-            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
+            className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-light transition-colors disabled:opacity-50"
           >
             {isBatchRunning ? "実行中..." : isFetchingTargets ? "読込中..." : "一括バッチ実行"}
           </button>
@@ -581,13 +497,13 @@ export default function BatchPage() {
               setShowSingleDialog(true);
             }}
             disabled={!!singleRunningId}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+            className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-light transition-colors disabled:opacity-50"
           >
             {singleRunningId ? "実行中..." : "個別送信"}
           </button>
           <button
             onClick={() => setShowForm(!showForm)}
-            className="px-4 py-2 bg-[#1a1a2e] text-white rounded-lg hover:bg-[#16213e] transition-colors"
+            className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-light transition-colors"
           >
             {showForm ? "キャンセル" : "新規登録"}
           </button>
@@ -648,7 +564,7 @@ export default function BatchPage() {
               <button
                 onClick={handleBatchRun}
                 disabled={batchTargets.length === 0}
-                className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
+                className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary-light transition-colors disabled:opacity-50"
               >
                 {batchTargets.length}件を実行
               </button>
@@ -673,7 +589,7 @@ export default function BatchPage() {
                 <select
                   value={selectedSubscriptionId}
                   onChange={(e) => setSelectedSubscriptionId(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
                 >
                   <option value="">顧客を選択</option>
                   {activeSubscriptions.map((sub) => (
@@ -697,7 +613,7 @@ export default function BatchPage() {
                               : singleSites.map((s) => s.id)
                           )
                         }
-                        className="text-xs text-blue-600 hover:underline"
+                        className="text-xs text-gray-700 hover:underline"
                       >
                         {selectedSiteIds.length === singleSites.length ? "全解除" : "全選択"}
                       </button>
@@ -755,116 +671,9 @@ export default function BatchPage() {
               <button
                 onClick={handleSingleRun}
                 disabled={!selectedSubscriptionId || selectedSiteIds.length === 0}
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary-light transition-colors disabled:opacity-50"
               >
                 実行
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* PDF取得ダイアログ */}
-      {showPdfDialog && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-xl max-w-md w-full mx-4 max-h-[90vh] flex flex-col">
-            <div className="p-6 border-b border-gray-200">
-              <h3 className="text-lg font-bold text-gray-900">レポートPDF取得</h3>
-              <p className="text-sm text-gray-500 mt-1">
-                クライアント・サイトと期間を選択してPDFをダウンロードします。
-              </p>
-            </div>
-            <div className="p-6 space-y-4 overflow-y-auto flex-1">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">クライアント</label>
-                <select
-                  value={pdfClientId}
-                  onChange={(e) => setPdfClientId(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none"
-                >
-                  <option value="">クライアントを選択</option>
-                  {subscriptions.map((sub) => (
-                    <option key={sub.id} value={sub.client.id}>
-                      {sub.client.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              {pdfClientId && (
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="block text-sm font-medium text-gray-700">対象サイト</label>
-                    {pdfSites.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setPdfSelectedSiteIds(
-                            pdfSelectedSiteIds.length === pdfSites.length
-                              ? []
-                              : pdfSites.map((s) => s.id)
-                          )
-                        }
-                        className="text-xs text-emerald-600 hover:underline"
-                      >
-                        {pdfSelectedSiteIds.length === pdfSites.length ? "全解除" : "全選択"}
-                      </button>
-                    )}
-                  </div>
-                  {isLoadingPdfSites ? (
-                    <p className="text-sm text-gray-500 py-2">読込中...</p>
-                  ) : pdfSites.length === 0 ? (
-                    <p className="text-sm text-gray-500 py-2">有効なサイトがありません</p>
-                  ) : (
-                    <div className="border border-gray-200 rounded-lg divide-y divide-gray-100 max-h-48 overflow-y-auto">
-                      {pdfSites.map((site) => (
-                        <label
-                          key={site.id}
-                          className="flex items-start gap-3 px-3 py-2 cursor-pointer hover:bg-gray-50"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={pdfSelectedSiteIds.includes(site.id)}
-                            onChange={(e) => {
-                              setPdfSelectedSiteIds((prev) =>
-                                e.target.checked
-                                  ? [...prev, site.id]
-                                  : prev.filter((id) => id !== site.id)
-                              );
-                            }}
-                            className="mt-1"
-                          />
-                          <div className="flex-1 min-w-0">
-                            <div className="text-sm font-medium text-gray-900 truncate">
-                              {site.siteName}
-                            </div>
-                            <div className="text-xs text-gray-400 truncate">{site.siteUrl}</div>
-                          </div>
-                        </label>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-              {periodSelector}
-            </div>
-            <div className="p-4 border-t border-gray-200 flex justify-end gap-3">
-              <button
-                onClick={() => {
-                  setShowPdfDialog(false);
-                  setPdfClientId("");
-                  setPdfSites([]);
-                  setPdfSelectedSiteIds([]);
-                }}
-                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-              >
-                キャンセル
-              </button>
-              <button
-                onClick={handlePdfDownload}
-                disabled={!pdfClientId || pdfSelectedSiteIds.length === 0 || isPdfDownloading}
-                className="px-6 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50"
-              >
-                {isPdfDownloading ? "ダウンロード中..." : "ダウンロード"}
               </button>
             </div>
           </div>
@@ -885,7 +694,7 @@ export default function BatchPage() {
                     setFormData({ ...formData, clientId: e.target.value })
                   }
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1a1a2e] focus:border-transparent outline-none"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
                 >
                   <option value="">選択してください</option>
                   {availableClients.map((c) => (
@@ -907,7 +716,7 @@ export default function BatchPage() {
                       deliveryChannel: e.target.value as DeliveryChannel,
                     })
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1a1a2e] focus:border-transparent outline-none"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
                 >
                   <option value="email">メール</option>
                   <option value="line">LINE</option>
@@ -918,7 +727,7 @@ export default function BatchPage() {
             <div className="flex justify-end">
               <button
                 type="submit"
-                className="px-6 py-2 bg-[#1a1a2e] text-white rounded-lg hover:bg-[#16213e] transition-colors"
+                className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary-light transition-colors"
               >
                 登録
               </button>
@@ -954,7 +763,7 @@ export default function BatchPage() {
                         onClick={() => handleToggleExcludeFromBatch(sub)}
                         className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium cursor-pointer transition-colors ${
                           sub.excludeFromBatch
-                            ? "bg-orange-100 text-orange-800 hover:bg-orange-200"
+                            ? "bg-gray-200 text-gray-700 hover:bg-gray-300"
                             : "bg-gray-100 text-gray-500 hover:bg-gray-200"
                         }`}
                       >
@@ -967,7 +776,7 @@ export default function BatchPage() {
                       <select
                         value={editChannel}
                         onChange={(e) => setEditChannel(e.target.value as DeliveryChannel)}
-                        className="px-2 py-1 border border-gray-300 rounded text-sm outline-none focus:ring-2 focus:ring-[#1a1a2e]"
+                        className="px-2 py-1 border border-gray-300 rounded text-sm outline-none focus:ring-2 focus:ring-primary"
                       >
                         <option value="email">メール</option>
                         <option value="line">LINE</option>
@@ -981,16 +790,16 @@ export default function BatchPage() {
                   <div className="flex flex-wrap gap-1.5 pt-1">
                     {editingId === sub.id ? (
                       <>
-                        <button onClick={() => handleUpdate(sub.id)} className="px-3 py-1 text-xs bg-[#1a1a2e] text-white rounded hover:bg-[#16213e]">保存</button>
+                        <button onClick={() => handleUpdate(sub.id)} className="px-3 py-1 text-xs bg-primary text-white rounded hover:bg-primary-light">保存</button>
                         <button onClick={() => setEditingId(null)} className="px-3 py-1 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200">戻す</button>
                       </>
                     ) : (
                       <>
-                        <button onClick={() => handleTestSend(sub.id)} disabled={testSendingId === sub.id} className="px-3 py-1 text-xs bg-blue-50 text-blue-700 rounded hover:bg-blue-100 disabled:opacity-50">
+                        <button onClick={() => handleTestSend(sub.id)} disabled={testSendingId === sub.id} className="px-3 py-1 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200 disabled:opacity-50">
                           {testSendingId === sub.id ? "送信中..." : "テスト送信"}
                         </button>
                         <button onClick={() => { setEditingId(sub.id); setEditChannel(sub.deliveryChannel); }} className="px-3 py-1 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200">編集</button>
-                        <button onClick={() => handleToggleActive(sub)} className={`px-3 py-1 text-xs rounded ${sub.isActive ? "bg-yellow-50 text-yellow-700 hover:bg-yellow-100" : "bg-green-50 text-green-700 hover:bg-green-100"}`}>
+                        <button onClick={() => handleToggleActive(sub)} className={`px-3 py-1 text-xs rounded ${sub.isActive ? "bg-gray-200 text-gray-700 hover:bg-gray-300" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}>
                           {sub.isActive ? "停止" : "有効化"}
                         </button>
                         <button onClick={() => handleDelete(sub.id)} className="px-3 py-1 text-xs bg-red-50 text-red-700 rounded hover:bg-red-100">解除</button>
@@ -1022,7 +831,7 @@ export default function BatchPage() {
                           <select
                             value={editChannel}
                             onChange={(e) => setEditChannel(e.target.value as DeliveryChannel)}
-                            className="px-2 py-1 border border-gray-300 rounded text-sm outline-none focus:ring-2 focus:ring-[#1a1a2e]"
+                            className="px-2 py-1 border border-gray-300 rounded text-sm outline-none focus:ring-2 focus:ring-primary"
                           >
                             <option value="email">メール</option>
                             <option value="line">LINE</option>
@@ -1042,7 +851,7 @@ export default function BatchPage() {
                           onClick={() => handleToggleExcludeFromBatch(sub)}
                           className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium cursor-pointer transition-colors ${
                             sub.excludeFromBatch
-                              ? "bg-orange-100 text-orange-800 hover:bg-orange-200"
+                              ? "bg-gray-200 text-gray-700 hover:bg-gray-300"
                               : "bg-gray-100 text-gray-500 hover:bg-gray-200"
                           }`}
                         >
@@ -1054,16 +863,16 @@ export default function BatchPage() {
                         <div className="flex gap-2">
                           {editingId === sub.id ? (
                             <>
-                              <button onClick={() => handleUpdate(sub.id)} className="px-3 py-1 text-sm bg-[#1a1a2e] text-white rounded hover:bg-[#16213e]">保存</button>
+                              <button onClick={() => handleUpdate(sub.id)} className="px-3 py-1 text-sm bg-primary text-white rounded hover:bg-primary-light">保存</button>
                               <button onClick={() => setEditingId(null)} className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200">戻す</button>
                             </>
                           ) : (
                             <>
-                              <button onClick={() => handleTestSend(sub.id)} disabled={testSendingId === sub.id} className="px-3 py-1 text-sm bg-blue-50 text-blue-700 rounded hover:bg-blue-100 disabled:opacity-50">
+                              <button onClick={() => handleTestSend(sub.id)} disabled={testSendingId === sub.id} className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200 disabled:opacity-50">
                                 {testSendingId === sub.id ? "送信中..." : "テスト送信"}
                               </button>
                               <button onClick={() => { setEditingId(sub.id); setEditChannel(sub.deliveryChannel); }} className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200">編集</button>
-                              <button onClick={() => handleToggleActive(sub)} className={`px-3 py-1 text-sm rounded ${sub.isActive ? "bg-yellow-50 text-yellow-700 hover:bg-yellow-100" : "bg-green-50 text-green-700 hover:bg-green-100"}`}>
+                              <button onClick={() => handleToggleActive(sub)} className={`px-3 py-1 text-sm rounded ${sub.isActive ? "bg-gray-200 text-gray-700 hover:bg-gray-300" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}>
                                 {sub.isActive ? "停止" : "有効化"}
                               </button>
                               <button onClick={() => handleDelete(sub.id)} className="px-3 py-1 text-sm bg-red-50 text-red-700 rounded hover:bg-red-100">解除</button>
