@@ -5,6 +5,7 @@ import type { ReportData } from "@/src/lib/report";
 import { sendReportLineMessage } from "@/src/lib/line";
 import { sendReportEmail } from "@/src/lib/email";
 import { generateReportDownloadToken } from "@/src/lib/report-token";
+import { getBaseUrl } from "@/src/lib/env";
 
 interface BatchResult {
   total: number;
@@ -53,7 +54,7 @@ const deliverReport = async (
     }
 
     const token = generateReportDownloadToken(reportId);
-    const baseUrl = process.env.NEXTAUTH_URL ?? (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "");
+    const baseUrl = getBaseUrl();
     const pdfUrl = `${baseUrl}/api/reports/${reportId}/pdf?token=${token}`;
 
     for (const lineId of lineIds) {

@@ -72,8 +72,16 @@ function LoginForm() {
       <div className="w-full max-w-md">
         <div className="bg-white rounded-2xl shadow-lg p-8">
           <div className="text-center mb-8">
-            <Image src="/fav.png" alt="オトレポ" width={40} height={40} className="mx-auto mb-2" />
-            <h1 className="text-2xl font-bold text-primary">オトレポ</h1>
+            <Image
+              src="/favcon.jpeg"
+              alt="オトレポ"
+              width={2816}
+              height={1536}
+              priority
+              sizes="320px"
+              className="mx-auto w-full max-w-[320px] h-auto rounded-lg"
+            />
+            <h1 className="sr-only">オトレポ</h1>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">

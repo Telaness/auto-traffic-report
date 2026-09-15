@@ -35,10 +35,16 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
         }`}
       >
         <div className="p-6 border-b border-white/10">
-          <div className="flex items-center gap-2">
-            <Image src="/fav.png" alt="オトレポ" width={28} height={28} />
-            <h1 className="text-xl font-bold">オトレポ</h1>
-          </div>
+          <Image
+            src="/favcon.jpeg"
+            alt="オトレポ"
+            width={2816}
+            height={1536}
+            priority
+            sizes="208px"
+            className="w-full h-auto rounded-lg"
+          />
+          <h1 className="sr-only">オトレポ</h1>
         </div>
         <nav className="flex-1 p-4">
           <ul className="space-y-1">
