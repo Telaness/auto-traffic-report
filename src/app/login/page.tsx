@@ -73,7 +73,7 @@ function LoginForm() {
         <div className="bg-white rounded-2xl shadow-lg p-8">
           <div className="text-center mb-8">
             <Image src="/fav.png" alt="オトレポ" width={40} height={40} className="mx-auto mb-2" />
-            <h1 className="text-2xl font-bold text-[#1a1a2e]">オトレポ</h1>
+            <h1 className="text-2xl font-bold text-primary">オトレポ</h1>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
@@ -98,7 +98,7 @@ function LoginForm() {
                 required
                 disabled={isLocked}
                 autoComplete="username"
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1a1a2e] focus:border-transparent outline-none disabled:bg-gray-100 disabled:text-gray-400"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none disabled:bg-gray-100 disabled:text-gray-400"
               />
             </div>
 
@@ -113,14 +113,14 @@ function LoginForm() {
                 required
                 disabled={isLocked}
                 autoComplete="current-password"
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1a1a2e] focus:border-transparent outline-none disabled:bg-gray-100 disabled:text-gray-400"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none disabled:bg-gray-100 disabled:text-gray-400"
               />
             </div>
 
             <button
               type="submit"
               disabled={isLoading || isLocked}
-              className="w-full py-2.5 bg-[#1a1a2e] text-white rounded-lg hover:bg-[#16213e] transition-colors disabled:opacity-50 font-medium"
+              className="w-full py-2.5 bg-primary text-white rounded-lg hover:bg-primary-light transition-colors disabled:opacity-50 font-medium"
             >
               {isLocked ? "ロック中" : isLoading ? "ログイン中..." : "ログイン"}
             </button>

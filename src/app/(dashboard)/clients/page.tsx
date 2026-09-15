@@ -229,7 +229,7 @@ export default function ClientsPage() {
         <h2 className="text-2xl font-bold text-gray-900">クライアント一覧</h2>
         <button
           onClick={() => (showForm ? resetForm() : setShowForm(true))}
-          className="px-4 py-2 bg-[#1a1a2e] text-white rounded-lg hover:bg-[#16213e] transition-colors"
+          className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-light transition-colors"
         >
           {showForm ? "キャンセル" : "新規登録"}
         </button>
@@ -246,7 +246,7 @@ export default function ClientsPage() {
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1a1a2e] focus:border-transparent outline-none"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
                 />
               </div>
               <div>
@@ -254,7 +254,7 @@ export default function ClientsPage() {
                 <select
                   value={formData.deliveryChannel}
                   onChange={(e) => setFormData({ ...formData, deliveryChannel: e.target.value as "email" | "line" | "both" })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1a1a2e] focus:border-transparent outline-none"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
                 >
                   <option value="email">メール</option>
                   <option value="line">LINE</option>
@@ -267,7 +267,7 @@ export default function ClientsPage() {
                   type="email"
                   value={formData.contactEmail}
                   onChange={(e) => setFormData({ ...formData, contactEmail: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1a1a2e] focus:border-transparent outline-none"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
                 />
               </div>
             </div>
@@ -282,7 +282,7 @@ export default function ClientsPage() {
                     setShowManualRegister(false);
                     void fetchUnassignedLineTargets(lineTypeFilter || undefined);
                   }}
-                  className="ml-2 px-2 py-0.5 text-xs bg-green-50 text-green-700 rounded hover:bg-green-100"
+                  className="ml-2 px-2 py-0.5 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
                 >
                   追加
                 </button>
@@ -292,14 +292,14 @@ export default function ClientsPage() {
                     setShowManualRegister((prev) => !prev);
                     setShowLineLink(false);
                   }}
-                  className="ml-1 px-2 py-0.5 text-xs bg-blue-50 text-blue-700 rounded hover:bg-blue-100"
+                  className="ml-1 px-2 py-0.5 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
                 >
                   {showManualRegister ? "閉じる" : "手動登録"}
                 </button>
               </label>
 
               {showManualRegister && (
-                <div className="mb-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                <div className="mb-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
                   <p className="text-xs text-gray-600 mb-2">
                     LINE IDを直接入力して登録します。登録時にLINE APIから名前を自動取得します。
                   </p>
@@ -311,7 +311,7 @@ export default function ClientsPage() {
                         value={manualLineId}
                         onChange={(e) => setManualLineId(e.target.value)}
                         placeholder="C1234abcd..."
-                        className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded outline-none focus:ring-2 focus:ring-primary"
                       />
                     </div>
                     <div>
@@ -319,7 +319,7 @@ export default function ClientsPage() {
                       <select
                         value={manualLineType}
                         onChange={(e) => setManualLineType(e.target.value as "user" | "group")}
-                        className="px-3 py-1.5 text-sm border border-gray-300 rounded outline-none focus:ring-2 focus:ring-blue-500"
+                        className="px-3 py-1.5 text-sm border border-gray-300 rounded outline-none focus:ring-2 focus:ring-primary"
                       >
                         <option value="group">グループ</option>
                         <option value="user">個人</option>
@@ -329,7 +329,7 @@ export default function ClientsPage() {
                       type="button"
                       onClick={handleAddPendingManual}
                       disabled={!manualLineId.trim()}
-                      className="px-4 py-1.5 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 whitespace-nowrap"
+                      className="px-4 py-1.5 text-sm bg-primary text-white rounded hover:bg-primary-light disabled:opacity-50 whitespace-nowrap"
                     >
                       追加
                     </button>
@@ -350,8 +350,8 @@ export default function ClientsPage() {
                         <span
                           className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium shrink-0 ${
                             p.type === "group"
-                              ? "bg-purple-100 text-purple-700"
-                              : "bg-blue-100 text-blue-700"
+                              ? "bg-gray-200 text-gray-800"
+                              : "bg-gray-100 text-gray-600 border border-gray-300"
                           }`}
                         >
                           {p.type === "group" ? "グループ" : "個人"}
@@ -390,7 +390,7 @@ export default function ClientsPage() {
                             }}
                             className={`px-3 py-1 text-xs rounded ${
                               lineTypeFilter === t
-                                ? "bg-[#1a1a2e] text-white"
+                                ? "bg-primary text-white"
                                 : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-100"
                             }`}
                           >
@@ -415,8 +415,8 @@ export default function ClientsPage() {
                             <span
                               className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium shrink-0 ${
                                 t.type === "group"
-                                  ? "bg-purple-100 text-purple-700"
-                                  : "bg-blue-100 text-blue-700"
+                                  ? "bg-gray-200 text-gray-800"
+                                  : "bg-gray-100 text-gray-600 border border-gray-300"
                               }`}
                             >
                               {t.type === "group" ? "グループ" : "個人"}
@@ -429,7 +429,7 @@ export default function ClientsPage() {
                           <button
                             type="button"
                             onClick={() => handleAddPendingExisting(t)}
-                            className="px-3 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700 shrink-0"
+                            className="px-3 py-1 text-xs bg-primary text-white rounded hover:bg-primary-light shrink-0"
                           >
                             紐づける
                           </button>
@@ -445,7 +445,7 @@ export default function ClientsPage() {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="px-6 py-2 bg-[#1a1a2e] text-white rounded-lg hover:bg-[#16213e] transition-colors disabled:opacity-50"
+                className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary-light transition-colors disabled:opacity-50"
               >
                 {isSubmitting ? "登録中..." : "登録"}
               </button>
@@ -461,7 +461,7 @@ export default function ClientsPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="クライアント名で検索..."
-            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1a1a2e] focus:border-transparent outline-none"
+            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
             onKeyDown={(e) => e.key === "Enter" && handleSearch()}
           />
           <button
@@ -525,7 +525,7 @@ export default function ClientsPage() {
                       <td className="py-3 px-4">
                         <Link
                           href={`/clients/${client.id}`}
-                          className="text-blue-600 hover:text-blue-800 text-sm"
+                          className="text-gray-900 underline hover:text-gray-600 text-sm"
                         >
                           詳細
                         </Link>

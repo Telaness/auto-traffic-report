@@ -328,7 +328,7 @@ export default function ClientDetailPage() {
                   value={editData.name}
                   onChange={(e) => setEditData({ ...editData, name: e.target.value })}
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-[#1a1a2e]"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
               <div>
@@ -337,7 +337,7 @@ export default function ClientDetailPage() {
                   type="email"
                   value={editData.contactEmail}
                   onChange={(e) => setEditData({ ...editData, contactEmail: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-[#1a1a2e]"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
             </div>
@@ -351,21 +351,21 @@ export default function ClientDetailPage() {
                     setShowLineLink(true);
                     fetchLineTargets();
                   }}
-                  className="ml-2 px-2 py-0.5 text-xs bg-green-50 text-green-700 rounded hover:bg-green-100"
+                  className="ml-2 px-2 py-0.5 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
                 >
                   追加
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowManualRegister(!showManualRegister)}
-                  className="ml-1 px-2 py-0.5 text-xs bg-blue-50 text-blue-700 rounded hover:bg-blue-100"
+                  className="ml-1 px-2 py-0.5 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
                 >
                   {showManualRegister ? "閉じる" : "手動登録"}
                 </button>
               </label>
 
               {showManualRegister && (
-                <div className="mb-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                <div className="mb-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
                   <p className="text-xs text-gray-600 mb-2">
                     LINE IDを直接入力して登録します。登録時にLINE APIから名前を自動取得します。
                   </p>
@@ -377,7 +377,7 @@ export default function ClientDetailPage() {
                         value={manualLineId}
                         onChange={(e) => setManualLineId(e.target.value)}
                         placeholder="C1234abcd..."
-                        className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded outline-none focus:ring-2 focus:ring-primary"
                       />
                     </div>
                     <div>
@@ -385,7 +385,7 @@ export default function ClientDetailPage() {
                       <select
                         value={manualLineType}
                         onChange={(e) => setManualLineType(e.target.value as "user" | "group")}
-                        className="px-3 py-1.5 text-sm border border-gray-300 rounded outline-none focus:ring-2 focus:ring-blue-500"
+                        className="px-3 py-1.5 text-sm border border-gray-300 rounded outline-none focus:ring-2 focus:ring-primary"
                       >
                         <option value="group">グループ</option>
                         <option value="user">個人</option>
@@ -395,7 +395,7 @@ export default function ClientDetailPage() {
                       type="button"
                       onClick={handleManualRegister}
                       disabled={!manualLineId.trim() || isRegistering}
-                      className="px-4 py-1.5 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 whitespace-nowrap"
+                      className="px-4 py-1.5 text-sm bg-primary text-white rounded hover:bg-primary-light disabled:opacity-50 whitespace-nowrap"
                     >
                       {isRegistering ? "登録中..." : "登録"}
                     </button>
@@ -416,8 +416,8 @@ export default function ClientDetailPage() {
                         <span
                           className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium ${
                             t.type === "group"
-                              ? "bg-purple-100 text-purple-700"
-                              : "bg-blue-100 text-blue-700"
+                              ? "bg-gray-200 text-gray-800"
+                              : "bg-gray-100 text-gray-600 border border-gray-300"
                           }`}
                         >
                           {t.type === "group" ? "グループ" : "個人"}
@@ -460,7 +460,7 @@ export default function ClientDetailPage() {
                             }}
                             className={`px-3 py-1 text-xs rounded ${
                               lineTypeFilter === t
-                                ? "bg-[#1a1a2e] text-white"
+                                ? "bg-primary text-white"
                                 : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-100"
                             }`}
                           >
@@ -485,8 +485,8 @@ export default function ClientDetailPage() {
                             <span
                               className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium ${
                                 t.type === "group"
-                                  ? "bg-purple-100 text-purple-700"
-                                  : "bg-blue-100 text-blue-700"
+                                  ? "bg-gray-200 text-gray-800"
+                                  : "bg-gray-100 text-gray-600 border border-gray-300"
                               }`}
                             >
                               {t.type === "group" ? "グループ" : "個人"}
@@ -502,7 +502,7 @@ export default function ClientDetailPage() {
                             type="button"
                             onClick={() => handleAssignLine(t.id)}
                             disabled={isAssigning}
-                            className="px-3 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
+                            className="px-3 py-1 text-xs bg-primary text-white rounded hover:bg-primary-light disabled:opacity-50"
                           >
                             {isAssigning ? "紐づけ中..." : "紐づける"}
                           </button>
@@ -522,7 +522,7 @@ export default function ClientDetailPage() {
             </div>
 
             <div className="flex justify-end">
-              <button type="submit" className="px-6 py-2 bg-[#1a1a2e] text-white rounded-lg hover:bg-[#16213e]">
+              <button type="submit" className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary-light">
                 更新
               </button>
             </div>
@@ -554,8 +554,8 @@ export default function ClientDetailPage() {
                         <span
                           className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium ${
                             t.type === "group"
-                              ? "bg-purple-100 text-purple-700"
-                              : "bg-blue-100 text-blue-700"
+                              ? "bg-gray-200 text-gray-800"
+                              : "bg-gray-100 text-gray-600 border border-gray-300"
                           }`}
                         >
                           {t.type === "group" ? "グループ" : "個人"}
@@ -581,7 +581,7 @@ export default function ClientDetailPage() {
         action={
           <button
             onClick={() => setShowSiteForm(!showSiteForm)}
-            className="px-3 py-1.5 text-sm bg-[#1a1a2e] text-white rounded-lg hover:bg-[#16213e]"
+            className="px-3 py-1.5 text-sm bg-primary text-white rounded-lg hover:bg-primary-light"
           >
             {showSiteForm ? "キャンセル" : "サイト追加"}
           </button>
@@ -597,7 +597,7 @@ export default function ClientDetailPage() {
                   value={siteFormData.siteName}
                   onChange={(e) => setSiteFormData({ ...siteFormData, siteName: e.target.value })}
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-[#1a1a2e]"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
               <div>
@@ -607,7 +607,7 @@ export default function ClientDetailPage() {
                   value={siteFormData.siteUrl}
                   onChange={(e) => setSiteFormData({ ...siteFormData, siteUrl: e.target.value })}
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-[#1a1a2e]"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
               <div>
@@ -618,7 +618,7 @@ export default function ClientDetailPage() {
                   onChange={(e) => setSiteFormData({ ...siteFormData, ga4PropertyId: e.target.value })}
                   required
                   placeholder="properties/123456789"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-[#1a1a2e]"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
               <div>
@@ -628,12 +628,12 @@ export default function ClientDetailPage() {
                   value={siteFormData.reportStartDate}
                   onChange={(e) => setSiteFormData({ ...siteFormData, reportStartDate: e.target.value })}
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-[#1a1a2e]"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
             </div>
             <div className="flex justify-end">
-              <button type="submit" className="px-6 py-2 bg-[#1a1a2e] text-white rounded-lg hover:bg-[#16213e]">
+              <button type="submit" className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary-light">
                 登録
               </button>
             </div>
@@ -658,7 +658,7 @@ export default function ClientDetailPage() {
                         <span className="text-xs text-gray-400">レポートなし</span>
                       )}
                     </div>
-                    <p className="text-xs text-blue-600 truncate">{site.siteUrl}</p>
+                    <p className="text-xs text-gray-500 truncate">{site.siteUrl}</p>
                     <div className="flex items-center gap-3 text-xs text-gray-500">
                       <span className="font-mono">{site.ga4PropertyId}</span>
                       <span>開始: {new Date(site.reportStartDate).toLocaleDateString("ja-JP")}</span>
@@ -672,7 +672,7 @@ export default function ClientDetailPage() {
                               type="date"
                               value={reportRange.startDate}
                               onChange={(e) => setReportRange({ ...reportRange, startDate: e.target.value })}
-                              className="w-full px-2 py-1 text-sm border border-gray-300 rounded outline-none focus:ring-2 focus:ring-[#1a1a2e]"
+                              className="w-full px-2 py-1 text-sm border border-gray-300 rounded outline-none focus:ring-2 focus:ring-primary"
                             />
                           </div>
                           <div>
@@ -681,7 +681,7 @@ export default function ClientDetailPage() {
                               type="date"
                               value={reportRange.endDate}
                               onChange={(e) => setReportRange({ ...reportRange, endDate: e.target.value })}
-                              className="w-full px-2 py-1 text-sm border border-gray-300 rounded outline-none focus:ring-2 focus:ring-[#1a1a2e]"
+                              className="w-full px-2 py-1 text-sm border border-gray-300 rounded outline-none focus:ring-2 focus:ring-primary"
                             />
                           </div>
                         </div>
@@ -689,7 +689,7 @@ export default function ClientDetailPage() {
                           <button
                             onClick={() => handleGenerateReport(site.id)}
                             disabled={isGenerating}
-                            className="px-3 py-1 text-sm bg-[#1a1a2e] text-white rounded hover:bg-[#16213e] disabled:opacity-50"
+                            className="px-3 py-1 text-sm bg-primary text-white rounded hover:bg-primary-light disabled:opacity-50"
                           >
                             {isGenerating ? "生成中..." : "生成"}
                           </button>
@@ -705,7 +705,7 @@ export default function ClientDetailPage() {
                       <div className="flex gap-2">
                         <button
                           onClick={() => setReportFormSiteId(site.id)}
-                          className="flex-1 px-3 py-1.5 text-sm bg-[#1a1a2e] text-white rounded-lg hover:bg-[#16213e]"
+                          className="flex-1 px-3 py-1.5 text-sm bg-primary text-white rounded-lg hover:bg-primary-light"
                         >
                           レポート生成
                         </button>
@@ -740,7 +740,7 @@ export default function ClientDetailPage() {
                     return (
                       <tr key={site.id} className="border-b border-gray-50 hover:bg-gray-50 align-top">
                         <td className="py-3 px-4 font-medium">{site.siteName}</td>
-                        <td className="py-3 px-4 text-blue-600">{site.siteUrl}</td>
+                        <td className="py-3 px-4 text-gray-500">{site.siteUrl}</td>
                         <td className="py-3 px-4 font-mono text-xs">{site.ga4PropertyId}</td>
                         <td className="py-3 px-4">
                           {new Date(site.reportStartDate).toLocaleDateString("ja-JP")}
@@ -761,7 +761,7 @@ export default function ClientDetailPage() {
                                   type="date"
                                   value={reportRange.startDate}
                                   onChange={(e) => setReportRange({ ...reportRange, startDate: e.target.value })}
-                                  className="px-2 py-1 text-sm border border-gray-300 rounded outline-none focus:ring-2 focus:ring-[#1a1a2e]"
+                                  className="px-2 py-1 text-sm border border-gray-300 rounded outline-none focus:ring-2 focus:ring-primary"
                                 />
                               </div>
                               <div className="flex flex-col gap-1">
@@ -770,14 +770,14 @@ export default function ClientDetailPage() {
                                   type="date"
                                   value={reportRange.endDate}
                                   onChange={(e) => setReportRange({ ...reportRange, endDate: e.target.value })}
-                                  className="px-2 py-1 text-sm border border-gray-300 rounded outline-none focus:ring-2 focus:ring-[#1a1a2e]"
+                                  className="px-2 py-1 text-sm border border-gray-300 rounded outline-none focus:ring-2 focus:ring-primary"
                                 />
                               </div>
                               <div className="flex gap-2">
                                 <button
                                   onClick={() => handleGenerateReport(site.id)}
                                   disabled={isGenerating}
-                                  className="px-3 py-1 text-sm bg-[#1a1a2e] text-white rounded hover:bg-[#16213e] disabled:opacity-50"
+                                  className="px-3 py-1 text-sm bg-primary text-white rounded hover:bg-primary-light disabled:opacity-50"
                                 >
                                   {isGenerating ? "生成中..." : "生成"}
                                 </button>
@@ -796,7 +796,7 @@ export default function ClientDetailPage() {
                             <div className="flex gap-2">
                               <button
                                 onClick={() => setReportFormSiteId(site.id)}
-                                className="px-3 py-1.5 text-sm bg-[#1a1a2e] text-white rounded-lg hover:bg-[#16213e] whitespace-nowrap"
+                                className="px-3 py-1.5 text-sm bg-primary text-white rounded-lg hover:bg-primary-light whitespace-nowrap"
                               >
                                 レポート生成
                               </button>

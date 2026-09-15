@@ -85,8 +85,8 @@ export default async function DashboardPage() {
                     <span className="text-sm font-medium">{log.report.site.client.name}</span>
                     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
                       log.channel === "email"
-                        ? "bg-blue-100 text-blue-700"
-                        : "bg-green-100 text-green-700"
+                        ? "bg-gray-200 text-gray-700"
+                        : "bg-gray-100 text-gray-600 border border-gray-300"
                     }`}>
                       {log.channel === "email" ? "メール" : "LINE"}
                     </span>
@@ -122,8 +122,8 @@ export default async function DashboardPage() {
                       <td className="py-3 px-4">
                         <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
                           log.channel === "email"
-                            ? "bg-blue-100 text-blue-700"
-                            : "bg-green-100 text-green-700"
+                            ? "bg-gray-200 text-gray-700"
+                            : "bg-gray-100 text-gray-600 border border-gray-300"
                         }`}>
                           {log.channel === "email" ? "メール" : "LINE"}
                         </span>

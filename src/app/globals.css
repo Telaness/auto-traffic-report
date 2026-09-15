@@ -3,9 +3,9 @@
 :root {
   --background: #f8fafc;
   --foreground: #1e293b;
-  --primary: #1a1a2e;
-  --primary-light: #16213e;
-  --accent: #0f3460;
+  --primary: #171717;
+  --primary-light: #404040;
+  --accent: #525252;
   --success: #22c55e;
   --danger: #ef4444;
   --warning: #f59e0b;

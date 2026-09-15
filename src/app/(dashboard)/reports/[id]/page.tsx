@@ -84,7 +84,7 @@ export default function ReportDetailPage() {
         {report.reportData && (
           <button
             onClick={() => window.open(`/api/reports/${report.id}/html`, "_blank")}
-            className="sm:ml-auto bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm"
+            className="sm:ml-auto bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-light transition-colors text-sm"
           >
             PDFダウンロード
           </button>

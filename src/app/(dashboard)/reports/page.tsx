@@ -112,14 +112,14 @@ export default function ReportsPage() {
           <button
             onClick={handleBulkDownload}
             disabled={isDownloading}
-            className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50"
+            className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-light transition-colors disabled:opacity-50"
           >
             {isDownloading ? "ダウンロード中..." : "前月レポート一括DL"}
           </button>
           <button
             onClick={handleBatchRun}
             disabled={isGenerating}
-            className="px-4 py-2 bg-[#1a1a2e] text-white rounded-lg hover:bg-[#16213e] transition-colors disabled:opacity-50"
+            className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-light transition-colors disabled:opacity-50"
           >
             {isGenerating ? "実行中..." : "バッチ実行"}
           </button>
@@ -134,7 +134,7 @@ export default function ReportsPage() {
               setStatusFilter(e.target.value);
               fetchReports(1, e.target.value);
             }}
-            className="px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-[#1a1a2e]"
+            className="px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-primary"
           >
             <option value="">全てのステータス</option>
             <option value="generated">生成済み</option>
@@ -246,7 +246,7 @@ export default function ReportsPage() {
                       <td className="py-3 px-4">
                         <Link
                           href={`/reports/${report.id}`}
-                          className="text-blue-600 hover:text-blue-800 text-sm"
+                          className="text-gray-900 underline hover:text-gray-600 text-sm"
                         >
                           詳細
                         </Link>
