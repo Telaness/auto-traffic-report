@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Card } from "@/src/components/Card";
 import { StatusBadge } from "@/src/components/StatusBadge";
+import { ComparisonRate } from "@/src/components/ComparisonRate";
 import type { ReportData } from "@/src/lib/report";
 
 interface DeliveryLog {
@@ -38,15 +39,35 @@ const channelLabels: Record<string, string> = {
   line: "LINE",
 };
 
-// 前期比の増減表示。増加はグレー、減少のみ識別性を優先して赤を残す。
-const ComparisonRate = ({ rate, className = "" }: { rate: number; className?: string }) => {
-  const isUp = rate >= 0;
-  return (
-    <span className={`${isUp ? "text-gray-900" : "text-red-600"} ${className}`}>
-      {isUp ? "↑" : "↓"} {isUp ? "+" : ""}
-      {rate.toFixed(1)}%
-    </span>
-  );
+type MetricKey =
+  | "sessions"
+  | "totalUsers"
+  | "screenPageViews"
+  | "bounceRate"
+  | "averageSessionDuration";
+
+type MetricDefinition = {
+  key: MetricKey;
+  label: string;
+  /** モバイルの狭い幅で使う短縮ラベル */
+  shortLabel?: string;
+  /** 0〜1の割合として保持している指標 */
+  isPercent?: boolean;
+  /** 直帰率のように「低いほど良い」指標 */
+  isLowerBetter?: boolean;
+};
+
+const TRAFFIC_METRICS: readonly MetricDefinition[] = [
+  { key: "sessions", label: "セッション数" },
+  { key: "totalUsers", label: "ユーザー数" },
+  { key: "screenPageViews", label: "ページビュー数", shortLabel: "PV数" },
+  { key: "bounceRate", label: "直帰率", isPercent: true, isLowerBetter: true },
+  { key: "averageSessionDuration", label: "平均セッション時間(秒)" },
+];
+
+const formatMetricValue = (value: number | null | undefined, isPercent?: boolean) => {
+  if (value === undefined || value === null) return "-";
+  return isPercent ? `${(value * 100).toFixed(1)}%` : Math.round(value).toLocaleString();
 };
 
 export default function ReportDetailPage() {
@@ -169,35 +190,26 @@ export default function ReportDetailPage() {
           <Card title="トラフィックデータ">
             {/* モバイル: カード表示 */}
             <div className="space-y-3 md:hidden">
-              {[
-                { label: "セッション数", key: "sessions" as const },
-                { label: "ユーザー数", key: "totalUsers" as const },
-                { label: "PV数", key: "screenPageViews" as const },
-                { label: "直帰率", key: "bounceRate" as const, isPercent: true },
-                { label: "平均セッション時間(秒)", key: "averageSessionDuration" as const },
-              ].map((metric) => {
-                const current = reportData.currentMonth[metric.key];
-                const previous = reportData.previousMonth?.[metric.key];
+              {TRAFFIC_METRICS.map((metric) => {
                 const comp = reportData.comparison?.[metric.key];
-                const displayCurrent = metric.isPercent
-                  ? `${(current * 100).toFixed(1)}%`
-                  : Math.round(current).toLocaleString();
-                const displayPrevious =
-                  previous !== undefined && previous !== null
-                    ? metric.isPercent
-                      ? `${(previous * 100).toFixed(1)}%`
-                      : Math.round(previous).toLocaleString()
-                    : "-";
                 return (
                   <div key={metric.key} className="flex items-center justify-between py-2 border-b border-gray-100">
                     <div>
-                      <p className="text-sm text-gray-600">{metric.label}</p>
-                      <p className="text-lg font-bold">{displayCurrent}</p>
+                      <p className="text-sm text-gray-600">{metric.shortLabel ?? metric.label}</p>
+                      <p className="text-lg font-bold">
+                        {formatMetricValue(reportData.currentMonth[metric.key], metric.isPercent)}
+                      </p>
                     </div>
                     <div className="text-right">
-                      <p className="text-xs text-gray-400">前期: {displayPrevious}</p>
+                      <p className="text-xs text-gray-400">
+                        前期: {formatMetricValue(reportData.previousMonth?.[metric.key], metric.isPercent)}
+                      </p>
                       {comp ? (
-                        <ComparisonRate rate={comp.rate} className="text-sm font-medium" />
+                        <ComparisonRate
+                          rate={comp.rate}
+                          isLowerBetter={metric.isLowerBetter}
+                          className="text-sm font-medium"
+                        />
                       ) : (
                         <p className="text-sm text-gray-400">-</p>
                       )}
@@ -218,33 +230,20 @@ export default function ReportDetailPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {[
-                    { label: "セッション数", key: "sessions" as const },
-                    { label: "ユーザー数", key: "totalUsers" as const },
-                    { label: "ページビュー数", key: "screenPageViews" as const },
-                    { label: "直帰率", key: "bounceRate" as const, isPercent: true },
-                    { label: "平均セッション時間(秒)", key: "averageSessionDuration" as const },
-                  ].map((metric) => {
-                    const current = reportData.currentMonth[metric.key];
-                    const previous = reportData.previousMonth?.[metric.key];
+                  {TRAFFIC_METRICS.map((metric) => {
                     const comp = reportData.comparison?.[metric.key];
-                    const displayCurrent = metric.isPercent
-                      ? `${(current * 100).toFixed(1)}%`
-                      : Math.round(current).toLocaleString();
-                    const displayPrevious =
-                      previous !== undefined && previous !== null
-                        ? metric.isPercent
-                          ? `${(previous * 100).toFixed(1)}%`
-                          : Math.round(previous).toLocaleString()
-                        : "-";
                     return (
                       <tr key={metric.key} className="border-b border-gray-50">
                         <td className="py-3 px-4">{metric.label}</td>
-                        <td className="py-3 px-4 text-right font-medium">{displayCurrent}</td>
-                        <td className="py-3 px-4 text-right text-gray-500">{displayPrevious}</td>
+                        <td className="py-3 px-4 text-right font-medium">
+                          {formatMetricValue(reportData.currentMonth[metric.key], metric.isPercent)}
+                        </td>
+                        <td className="py-3 px-4 text-right text-gray-500">
+                          {formatMetricValue(reportData.previousMonth?.[metric.key], metric.isPercent)}
+                        </td>
                         <td className="py-3 px-4 text-right">
                           {comp ? (
-                            <ComparisonRate rate={comp.rate} />
+                            <ComparisonRate rate={comp.rate} isLowerBetter={metric.isLowerBetter} />
                           ) : (
                             "-"
                           )}
