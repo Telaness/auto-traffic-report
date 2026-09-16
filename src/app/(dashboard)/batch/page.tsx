@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, type FormEvent } from "react";
 import { Card } from "@/src/components/Card";
+import { ActiveBadge } from "@/src/components/StatusBadge";
 import { Pagination } from "@/src/components/Pagination";
 
 type DeliveryChannel = "email" | "line" | "both";
@@ -752,13 +753,7 @@ export default function BatchPage() {
                   <div className="flex items-center justify-between">
                     <span className="font-medium text-sm truncate mr-2">{sub.client.name}</span>
                     <div className="flex items-center gap-1.5 shrink-0">
-                      <span
-                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                          sub.isActive ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-600"
-                        }`}
-                      >
-                        {sub.isActive ? "有効" : "無効"}
-                      </span>
+                      <ActiveBadge isActive={sub.isActive} />
                       <button
                         onClick={() => handleToggleExcludeFromBatch(sub)}
                         className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium cursor-pointer transition-colors ${
@@ -842,9 +837,7 @@ export default function BatchPage() {
                         )}
                       </td>
                       <td className="py-3 px-4">
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${sub.isActive ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-600"}`}>
-                          {sub.isActive ? "有効" : "無効"}
-                        </span>
+                        <ActiveBadge isActive={sub.isActive} />
                       </td>
                       <td className="py-3 px-4">
                         <button

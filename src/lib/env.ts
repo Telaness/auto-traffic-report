@@ -6,6 +6,7 @@ const requiredEnvVars = [
 ] as const;
 
 const optionalEnvVars = [
+  "NEXTAUTH_URL",
   "GOOGLE_SERVICE_ACCOUNT_KEY",
   "SMTP_HOST",
   "SMTP_PORT",
@@ -66,13 +67,28 @@ export const validateEnv = () => {
   }
 };
 
+const LOCAL_BASE_URL = "http://localhost:3000";
+
 /**
  * アプリの公開URL（オリジン）を返す。
  * OGP画像の絶対URL解決やLINE通知内のPDFリンク生成で共通利用する。
  * NEXTAUTH_URL > VERCEL_URL > localhost の優先順で解決する。
+ *
+ * 本番でどちらも未設定の場合、LINE通知に localhost のPDFリンクが
+ * 送られてしまう（配信自体は成功するため気づきにくい）。
+ * 挙動は変えずにログで検知できるようにしている。
  */
-export const getBaseUrl = (): string =>
-  process.env.NEXTAUTH_URL?.replace(/\/+$/, "") ||
-  (process.env.VERCEL_URL
-    ? `https://${process.env.VERCEL_URL}`
-    : "http://localhost:3000");
+export const getBaseUrl = (): string => {
+  const baseUrl =
+    process.env.NEXTAUTH_URL?.replace(/\/+$/, "") ||
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : LOCAL_BASE_URL);
+
+  if (baseUrl === LOCAL_BASE_URL && process.env.NODE_ENV === "production") {
+    console.error(
+      "[ENV] NEXTAUTH_URL / VERCEL_URL が未設定のため公開URLを解決できません。" +
+        "LINE通知のPDFリンクとOGP画像URLが localhost になります。"
+    );
+  }
+
+  return baseUrl;
+};

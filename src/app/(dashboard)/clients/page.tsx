@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, type FormEvent } from "react";
 import Link from "next/link";
 import { Card } from "@/src/components/Card";
 import { Pagination } from "@/src/components/Pagination";
-import { LineTargetTypeBadge } from "@/src/components/StatusBadge";
+import { LineTargetTypeBadge, ActiveBadge } from "@/src/components/StatusBadge";
 
 interface Client {
   id: string;
@@ -473,9 +473,7 @@ export default function ClientsPage() {
                 >
                   <div className="flex items-center justify-between mb-1.5">
                     <span className="font-medium text-sm truncate mr-2">{client.name}</span>
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium shrink-0 ${client.isActive ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-600"}`}>
-                      {client.isActive ? "有効" : "無効"}
-                    </span>
+                    <ActiveBadge isActive={client.isActive} className="shrink-0" />
                   </div>
                   <div className="flex items-center gap-3 text-xs text-gray-500">
                     <span>{channelLabels[client.deliveryChannel]}</span>
@@ -503,9 +501,7 @@ export default function ClientsPage() {
                       <td className="py-3 px-4">{channelLabels[client.deliveryChannel]}</td>
                       <td className="py-3 px-4">{client.sites.length}</td>
                       <td className="py-3 px-4">
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${client.isActive ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-600"}`}>
-                          {client.isActive ? "有効" : "無効"}
-                        </span>
+                        <ActiveBadge isActive={client.isActive} />
                       </td>
                       <td className="py-3 px-4">
                         <Link

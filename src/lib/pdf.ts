@@ -22,7 +22,9 @@ export const convertHtmlsToPdfs = async (
 
     for (const item of items) {
       const page = await browser.newPage();
-      await page.setContent(item.html, { waitUntil: "networkidle0" });
+      // レポートHTMLはCSSも含め完全にインライン化されており外部リソースを読まないため、
+      // networkidle0（無通信500msの待機）は1件あたり約500msの純粋な待ち時間になる。
+      await page.setContent(item.html, { waitUntil: "load" });
       const pdfBuffer = await page.pdf({
         format: "A4",
         printBackground: true,

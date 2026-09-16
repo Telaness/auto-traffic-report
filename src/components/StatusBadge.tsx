@@ -44,6 +44,23 @@ export const ChannelBadge = ({ channel }: { channel: string }) => {
   );
 };
 
+// 有効 / 無効の状態バッジ。
+export const ActiveBadge = ({
+  isActive,
+  className = "",
+}: {
+  isActive: boolean;
+  className?: string;
+}) => (
+  <span
+    className={`${BADGE_BASE} px-2 py-0.5 rounded-full ${
+      isActive ? tone.solid : "bg-gray-100 text-gray-600"
+    } ${className}`}
+  >
+    {isActive ? "有効" : "無効"}
+  </span>
+);
+
 // 配信ログのチップ。配色は配信の成否を、ラベルはチャネルを表す。
 export const DeliveryLogBadge = ({
   status,

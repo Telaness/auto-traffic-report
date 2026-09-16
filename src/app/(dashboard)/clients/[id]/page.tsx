@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, type FormEvent } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Card } from "@/src/components/Card";
-import { StatusBadge, LineTargetTypeBadge } from "@/src/components/StatusBadge";
+import { StatusBadge, LineTargetTypeBadge, ActiveBadge } from "@/src/components/StatusBadge";
 
 interface Site {
   id: string;
@@ -289,9 +289,7 @@ export default function ClientDetailPage() {
             &larr; 戻る
           </Link>
           <h2 className="text-2xl font-bold text-gray-900 truncate">{client.name}</h2>
-          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium shrink-0 ${client.isActive ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-600"}`}>
-            {client.isActive ? "有効" : "無効"}
-          </span>
+          <ActiveBadge isActive={client.isActive} className="shrink-0" />
         </div>
         <div className="flex gap-2 shrink-0">
           <button

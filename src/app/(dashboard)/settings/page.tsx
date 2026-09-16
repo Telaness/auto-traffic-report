@@ -14,7 +14,7 @@ interface EnvStatus {
 const StatusDot = ({ ok }: { ok: boolean }) => (
   <span
     className={`inline-block w-2.5 h-2.5 rounded-full mr-2 ${
-      ok ? "bg-green-500" : "bg-gray-300"
+      ok ? "bg-primary" : "bg-gray-300"
     }`}
   />
 );
