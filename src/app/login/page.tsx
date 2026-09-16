@@ -1,8 +1,8 @@
 "use client";
 
 import { Suspense, useState, type FormEvent } from "react";
-import Image from "next/image";
 import { signIn } from "next-auth/react";
+import { Logo } from "@/src/components/Logo";
 import { useRouter, useSearchParams } from "next/navigation";
 
 export default function LoginPage() {
@@ -72,13 +72,9 @@ function LoginForm() {
       <div className="w-full max-w-md">
         <div className="bg-white rounded-2xl shadow-lg p-8">
           <div className="text-center mb-8">
-            <Image
-              src="/favcon.jpeg"
-              alt="オトレポ"
-              width={2816}
-              height={1536}
-              priority
+            <Logo
               sizes="320px"
+              priority
               className="mx-auto w-full max-w-[320px] h-auto rounded-lg"
             />
             <h1 className="sr-only">オトレポ</h1>

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, type FormEvent } from "react";
 import Link from "next/link";
 import { Card } from "@/src/components/Card";
 import { Pagination } from "@/src/components/Pagination";
+import { LineTargetTypeBadge } from "@/src/components/StatusBadge";
 
 interface Client {
   id: string;
@@ -347,15 +348,7 @@ export default function ClientsPage() {
                       className="flex items-center justify-between p-2 bg-gray-50 rounded border border-gray-200"
                     >
                       <div className="flex items-center gap-2 min-w-0">
-                        <span
-                          className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium shrink-0 ${
-                            p.type === "group"
-                              ? "bg-gray-200 text-gray-800"
-                              : "bg-gray-100 text-gray-600 border border-gray-300"
-                          }`}
-                        >
-                          {p.type === "group" ? "グループ" : "個人"}
-                        </span>
+                        <LineTargetTypeBadge type={p.type} className="shrink-0" />
                         <span className="text-sm font-medium truncate">
                           {p.kind === "existing" ? (p.displayName ?? "名前未取得") : "新規登録"}
                         </span>
@@ -412,15 +405,7 @@ export default function ClientsPage() {
                           className="flex items-center justify-between p-2 bg-white rounded border border-gray-200"
                         >
                           <div className="flex items-center gap-2 min-w-0">
-                            <span
-                              className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium shrink-0 ${
-                                t.type === "group"
-                                  ? "bg-gray-200 text-gray-800"
-                                  : "bg-gray-100 text-gray-600 border border-gray-300"
-                              }`}
-                            >
-                              {t.type === "group" ? "グループ" : "個人"}
-                            </span>
+                            <LineTargetTypeBadge type={t.type} className="shrink-0" />
                             <span className="text-sm font-medium truncate">
                               {t.displayName ?? "名前未取得"}
                             </span>

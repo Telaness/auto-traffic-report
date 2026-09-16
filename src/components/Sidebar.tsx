@@ -1,7 +1,7 @@
 "use client";
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Logo } from "@/src/components/Logo";
 
 const navItems = [
   { href: "/dashboard", label: "ダッシュボード", icon: "📊" },
@@ -35,15 +35,7 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
         }`}
       >
         <div className="p-6 border-b border-white/10">
-          <Image
-            src="/favcon.jpeg"
-            alt="オトレポ"
-            width={2816}
-            height={1536}
-            priority
-            sizes="208px"
-            className="w-full h-auto rounded-lg"
-          />
+          <Logo sizes="208px" className="w-full h-auto rounded-lg" />
           <h1 className="sr-only">オトレポ</h1>
         </div>
         <nav className="flex-1 p-4">

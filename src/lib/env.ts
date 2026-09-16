@@ -71,16 +71,8 @@ export const validateEnv = () => {
  * OGP画像の絶対URL解決やLINE通知内のPDFリンク生成で共通利用する。
  * NEXTAUTH_URL > VERCEL_URL > localhost の優先順で解決する。
  */
-export const getBaseUrl = (): string => {
-  const explicitUrl = process.env.NEXTAUTH_URL;
-  if (explicitUrl) {
-    return explicitUrl.replace(/\/+$/, "");
-  }
-
-  const vercelUrl = process.env.VERCEL_URL;
-  if (vercelUrl) {
-    return `https://${vercelUrl}`;
-  }
-
-  return "http://localhost:3000";
-};
+export const getBaseUrl = (): string =>
+  process.env.NEXTAUTH_URL?.replace(/\/+$/, "") ||
+  (process.env.VERCEL_URL
+    ? `https://${process.env.VERCEL_URL}`
+    : "http://localhost:3000");

@@ -95,7 +95,7 @@ export default function BatchPage() {
   // 個別送信ダイアログ
   const [showSingleDialog, setShowSingleDialog] = useState(false);
   const [selectedSubscriptionId, setSelectedSubscriptionId] = useState("");
-  const [singleSites, setSingleSites] = useState<Array<{ id: string; siteName: string; siteUrl: string }>>([]);
+  const [singleSites, setSingleSites] = useState<ActiveSite[]>([]);
   const [selectedSiteIds, setSelectedSiteIds] = useState<string[]>([]);
   const [isLoadingSites, setIsLoadingSites] = useState(false);
 

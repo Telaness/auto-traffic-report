@@ -27,17 +27,12 @@ export const metadata: Metadata = {
     title: APP_NAME,
     capable: true,
   },
+  // title / description と画像（opengraph-image.jpg / twitter-image.jpg）は
+  // Next.js がルートのメタデータとファイル規約から自動で補完する。
   openGraph: {
     type: "website",
     locale: "ja_JP",
     siteName: APP_NAME,
-    title: APP_NAME,
-    description: APP_DESCRIPTION,
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: APP_NAME,
-    description: APP_DESCRIPTION,
   },
   robots: {
     index: false,

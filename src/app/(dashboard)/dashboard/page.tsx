@@ -1,5 +1,6 @@
 import { prisma } from "@/src/lib/db";
 import { Card } from "@/src/components/Card";
+import { ChannelBadge } from "@/src/components/StatusBadge";
 
 export default async function DashboardPage() {
   const [clientCount, siteCount, deliveryStats, failedLogs] =
@@ -83,13 +84,7 @@ export default async function DashboardPage() {
                 <div key={log.id} className="p-3 bg-red-50 border border-red-100 rounded-lg space-y-1.5">
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium">{log.report.site.client.name}</span>
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                      log.channel === "email"
-                        ? "bg-gray-200 text-gray-700"
-                        : "bg-gray-100 text-gray-600 border border-gray-300"
-                    }`}>
-                      {log.channel === "email" ? "メール" : "LINE"}
-                    </span>
+                    <ChannelBadge channel={log.channel} />
                   </div>
                   <p className="text-xs text-gray-600">{log.report.site.siteName}</p>
                   <p className="text-xs text-gray-400">
@@ -120,13 +115,7 @@ export default async function DashboardPage() {
                       <td className="py-3 px-4">{log.report.site.client.name}</td>
                       <td className="py-3 px-4">{log.report.site.siteName}</td>
                       <td className="py-3 px-4">
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                          log.channel === "email"
-                            ? "bg-gray-200 text-gray-700"
-                            : "bg-gray-100 text-gray-600 border border-gray-300"
-                        }`}>
-                          {log.channel === "email" ? "メール" : "LINE"}
-                        </span>
+                        <ChannelBadge channel={log.channel} />
                       </td>
                       <td className="py-3 px-4 text-red-600 text-xs">{log.errorMessage ?? "-"}</td>
                     </tr>

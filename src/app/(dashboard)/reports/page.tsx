@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { Card } from "@/src/components/Card";
-import { StatusBadge } from "@/src/components/StatusBadge";
+import { StatusBadge, DeliveryLogBadge } from "@/src/components/StatusBadge";
 import { Pagination } from "@/src/components/Pagination";
 
 interface Report {
@@ -172,16 +172,7 @@ export default function ReportsPage() {
                       </span>
                       <div className="flex gap-1">
                         {report.deliveryLogs.map((log, i) => (
-                          <span
-                            key={i}
-                            className={`text-xs px-1.5 py-0.5 rounded ${
-                              log.status === "success"
-                                ? "bg-green-100 text-green-700"
-                                : "bg-red-100 text-red-700"
-                            }`}
-                          >
-                            {log.channel === "email" ? "Mail" : "LINE"}
-                          </span>
+                          <DeliveryLogBadge key={i} status={log.status} channel={log.channel} />
                         ))}
                       </div>
                     </div>
@@ -225,16 +216,7 @@ export default function ReportsPage() {
                       <td className="py-3 px-4">
                         <div className="flex gap-1">
                           {report.deliveryLogs.map((log, i) => (
-                            <span
-                              key={i}
-                              className={`text-xs px-1.5 py-0.5 rounded ${
-                                log.status === "success"
-                                  ? "bg-green-100 text-green-700"
-                                  : "bg-red-100 text-red-700"
-                              }`}
-                            >
-                              {log.channel === "email" ? "Mail" : "LINE"}
-                            </span>
+                            <DeliveryLogBadge key={i} status={log.status} channel={log.channel} />
                           ))}
                         </div>
                       </td>

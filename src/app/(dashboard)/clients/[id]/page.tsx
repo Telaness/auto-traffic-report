@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, type FormEvent } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Card } from "@/src/components/Card";
-import { StatusBadge } from "@/src/components/StatusBadge";
+import { StatusBadge, LineTargetTypeBadge } from "@/src/components/StatusBadge";
 
 interface Site {
   id: string;
@@ -413,15 +413,7 @@ export default function ClientDetailPage() {
                       className="flex items-center justify-between p-2 bg-gray-50 rounded border border-gray-200"
                     >
                       <div className="flex items-center gap-2">
-                        <span
-                          className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium ${
-                            t.type === "group"
-                              ? "bg-gray-200 text-gray-800"
-                              : "bg-gray-100 text-gray-600 border border-gray-300"
-                          }`}
-                        >
-                          {t.type === "group" ? "グループ" : "個人"}
-                        </span>
+                        <LineTargetTypeBadge type={t.type} />
                         <span className="text-sm font-medium">
                           {t.displayName ?? "名前未取得"}
                         </span>
@@ -482,15 +474,7 @@ export default function ClientDetailPage() {
                           className="flex items-center justify-between p-2 bg-white rounded border border-gray-200"
                         >
                           <div className="flex items-center gap-2">
-                            <span
-                              className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium ${
-                                t.type === "group"
-                                  ? "bg-gray-200 text-gray-800"
-                                  : "bg-gray-100 text-gray-600 border border-gray-300"
-                              }`}
-                            >
-                              {t.type === "group" ? "グループ" : "個人"}
-                            </span>
+                            <LineTargetTypeBadge type={t.type} />
                             <span className="text-sm font-medium">
                               {t.displayName ?? "名前未取得"}
                             </span>
@@ -551,15 +535,7 @@ export default function ClientDetailPage() {
                         key={t.id}
                         className="flex items-center gap-2 p-2 bg-gray-50 rounded border border-gray-200"
                       >
-                        <span
-                          className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium ${
-                            t.type === "group"
-                              ? "bg-gray-200 text-gray-800"
-                              : "bg-gray-100 text-gray-600 border border-gray-300"
-                          }`}
-                        >
-                          {t.type === "group" ? "グループ" : "個人"}
-                        </span>
+                        <LineTargetTypeBadge type={t.type} />
                         <span className="text-sm font-medium">
                           {t.displayName ?? "名前未取得"}
                         </span>
