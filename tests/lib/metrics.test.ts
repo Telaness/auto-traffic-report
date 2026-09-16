@@ -1,10 +1,10 @@
 import { describe, it, expect } from "vitest";
 import {
-  TRAFFIC_METRICS,
   getMetricDirection,
+  changeRate,
   formatComparison,
   formatMetricValue,
-  lowerIsBetterLabels,
+  LOWER_IS_BETTER_LABELS,
 } from "@/src/lib/metrics";
 
 describe("getMetricDirection", () => {
@@ -13,10 +13,10 @@ describe("getMetricDirection", () => {
   });
 
   it("直帰率以外は高いほど良い指標として扱う", () => {
-    const others = TRAFFIC_METRICS.filter((metric) => metric.key !== "bounceRate");
-    expect(others.map((metric) => getMetricDirection(metric.key))).toEqual(
-      others.map(() => "higher-is-better")
-    );
+    expect(getMetricDirection("sessions")).toBe("higher-is-better");
+    expect(getMetricDirection("totalUsers")).toBe("higher-is-better");
+    expect(getMetricDirection("screenPageViews")).toBe("higher-is-better");
+    expect(getMetricDirection("averageSessionDuration")).toBe("higher-is-better");
   });
 });
 
@@ -63,8 +63,22 @@ describe("formatMetricValue", () => {
   });
 });
 
-describe("lowerIsBetterLabels", () => {
-  it("低いほど良い指標のラベルだけを返す", () => {
-    expect(lowerIsBetterLabels()).toEqual(["直帰率"]);
+describe("changeRate", () => {
+  it("増加分を前期に対する割合で返す", () => {
+    expect(changeRate(154, 127)).toBeCloseTo(21.26, 2);
+  });
+
+  it("減少はマイナスで返す", () => {
+    expect(changeRate(4.7, 8.9)).toBeCloseTo(-47.19, 2);
+  });
+
+  it("前期が0なら比較不能として0を返す", () => {
+    expect(changeRate(10, 0)).toBe(0);
+  });
+});
+
+describe("LOWER_IS_BETTER_LABELS", () => {
+  it("低いほど良い指標のラベルを列挙する", () => {
+    expect(LOWER_IS_BETTER_LABELS).toEqual(["直帰率", "平均掲載順位"]);
   });
 });

@@ -2,15 +2,19 @@ import { prisma } from "@/src/lib/db";
 import { fetchGA4DetailedData, fetchSearchConsoleData, getLastMonthRange } from "@/src/lib/ga4";
 import type { GA4Metrics, GA4DetailedData, GA4RegionData, GA4SourceData, GA4DeviceData, GA4BrowserData, SearchConsoleData } from "@/src/lib/ga4";
 import { generateAIAnalysis } from "@/src/lib/ai-analysis";
-import { formatRate } from "@/src/lib/format";
-import { formatComparison, getMetricDirection } from "@/src/lib/metrics";
-
-// PDFの前期比は従来どおり小数なしで表示する
-const formatRate0 = (rate: number) => formatRate(rate, 0);
-// 低いほど良い指標は符号だけでは良し悪しが伝わらないため「改善/悪化」を添える
-const formatComparison0 = (rate: number, key: Parameters<typeof getMetricDirection>[0]) =>
-  formatComparison(rate, getMetricDirection(key), 0);
 import type { AIAnalysis } from "@/src/lib/ai-analysis";
+import {
+  SEARCH_POSITION_METRIC,
+  changeRate,
+  formatComparison,
+  getMetricDirection,
+} from "@/src/lib/metrics";
+import type { MetricDirection } from "@/src/lib/metrics";
+
+// PDFの前期比は小数なしで表示する。
+// 低いほど良い指標は符号だけでは良し悪しが伝わらないため「改善/悪化」を添える。
+const formatComparison0 = (rate: number, direction: MetricDirection = "higher-is-better") =>
+  formatComparison(rate, direction, 0);
 
 interface ReportData {
   currentMonth: GA4Metrics;
@@ -39,29 +43,26 @@ const DEVICE_LABELS: Record<string, string> = {
 };
 
 const calculateComparison = (current: GA4Metrics, previous: GA4Metrics) => {
-  const calcRate = (cur: number, prev: number) =>
-    prev === 0 ? 0 : ((cur - prev) / prev) * 100;
-
   return {
     sessions: {
       diff: current.sessions - previous.sessions,
-      rate: calcRate(current.sessions, previous.sessions),
+      rate: changeRate(current.sessions, previous.sessions),
     },
     totalUsers: {
       diff: current.totalUsers - previous.totalUsers,
-      rate: calcRate(current.totalUsers, previous.totalUsers),
+      rate: changeRate(current.totalUsers, previous.totalUsers),
     },
     screenPageViews: {
       diff: current.screenPageViews - previous.screenPageViews,
-      rate: calcRate(current.screenPageViews, previous.screenPageViews),
+      rate: changeRate(current.screenPageViews, previous.screenPageViews),
     },
     bounceRate: {
       diff: current.bounceRate - previous.bounceRate,
-      rate: calcRate(current.bounceRate, previous.bounceRate),
+      rate: changeRate(current.bounceRate, previous.bounceRate),
     },
     averageSessionDuration: {
       diff: current.averageSessionDuration - previous.averageSessionDuration,
-      rate: calcRate(current.averageSessionDuration, previous.averageSessionDuration),
+      rate: changeRate(current.averageSessionDuration, previous.averageSessionDuration),
     },
   };
 };
@@ -219,7 +220,7 @@ export const generateReportHtml = (
 
   <div class="section">
     <h2>1. エグゼクティブサマリー（全体総括）</h2>
-    <p>${aiAnalysis?.executiveSummary ?? `当期間のWebサイトトラフィックの概要です。訪問数は${comparison ? `前期比${formatRate0(comparison.sessions.rate)}の` : ""}「${currentMonth.sessions.toLocaleString()}」セッションを記録しました。ユニーク訪問者数は${currentMonth.totalUsers.toLocaleString()}人、ページビュー数は${currentMonth.screenPageViews.toLocaleString()} PVです。`}</p>
+    <p>${aiAnalysis?.executiveSummary ?? `当期間のWebサイトトラフィックの概要です。訪問数は${comparison ? `前期比${formatComparison0(comparison.sessions.rate)}の` : ""}「${currentMonth.sessions.toLocaleString()}」セッションを記録しました。ユニーク訪問者数は${currentMonth.totalUsers.toLocaleString()}人、ページビュー数は${currentMonth.screenPageViews.toLocaleString()} PVです。`}</p>
   </div>
 
   <hr class="divider">
@@ -228,11 +229,11 @@ export const generateReportHtml = (
     <h2>2. トラフィック概要と推移</h2>
     <h3>主要指標 (KPI)</h3>
     <ul>
-      <li><strong>訪問数:</strong> ${currentMonth.sessions.toLocaleString()} セッション${comparison ? ` (前期比 ${formatRate0(comparison.sessions.rate)})` : ""}</li>
-      <li><strong>ユニーク訪問者数:</strong> ${currentMonth.totalUsers.toLocaleString()} 人${comparison ? ` (前期比 ${formatRate0(comparison.totalUsers.rate)})` : ""}</li>
-      <li><strong>ページビュー数:</strong> ${currentMonth.screenPageViews.toLocaleString()} PV${comparison ? ` (前期比 ${formatRate0(comparison.screenPageViews.rate)})` : ""}</li>
-      <li><strong>直帰率:</strong> ${(currentMonth.bounceRate * 100).toFixed(1)}%${comparison ? ` (前期比 ${formatComparison0(comparison.bounceRate.rate, "bounceRate")})` : ""}</li>
-      <li><strong>平均セッション時間:</strong> ${Math.round(currentMonth.averageSessionDuration)}秒${comparison ? ` (前期比 ${formatRate0(comparison.averageSessionDuration.rate)})` : ""}</li>
+      <li><strong>訪問数:</strong> ${currentMonth.sessions.toLocaleString()} セッション${comparison ? ` (前期比 ${formatComparison0(comparison.sessions.rate)})` : ""}</li>
+      <li><strong>ユニーク訪問者数:</strong> ${currentMonth.totalUsers.toLocaleString()} 人${comparison ? ` (前期比 ${formatComparison0(comparison.totalUsers.rate)})` : ""}</li>
+      <li><strong>ページビュー数:</strong> ${currentMonth.screenPageViews.toLocaleString()} PV${comparison ? ` (前期比 ${formatComparison0(comparison.screenPageViews.rate)})` : ""}</li>
+      <li><strong>直帰率:</strong> ${(currentMonth.bounceRate * 100).toFixed(1)}%${comparison ? ` (前期比 ${formatComparison0(comparison.bounceRate.rate, getMetricDirection("bounceRate"))})` : ""}</li>
+      <li><strong>平均セッション時間:</strong> ${Math.round(currentMonth.averageSessionDuration)}秒${comparison ? ` (前期比 ${formatComparison0(comparison.averageSessionDuration.rate)})` : ""}</li>
     </ul>
     ${aiAnalysis?.trafficComment ? `
     <div class="comment-box">
@@ -304,9 +305,9 @@ export const generateReportHtml = (
     <h2>5. 検索パフォーマンス (SEO分析)</h2>
     <h3>Google検索経由でのパフォーマンス</h3>
     <ul>
-      <li><strong>合計クリック数:</strong> ${searchConsole.totalClicks.toLocaleString()} 回${searchConsolePrevious ? ` (前期比 ${formatRate0(searchConsolePrevious.totalClicks > 0 ? ((searchConsole.totalClicks - searchConsolePrevious.totalClicks) / searchConsolePrevious.totalClicks * 100) : 0)})` : ""}</li>
-      <li><strong>合計インプレッション数:</strong> ${searchConsole.totalImpressions.toLocaleString()} 回${searchConsolePrevious ? ` (前期比 ${formatRate0(searchConsolePrevious.totalImpressions > 0 ? ((searchConsole.totalImpressions - searchConsolePrevious.totalImpressions) / searchConsolePrevious.totalImpressions * 100) : 0)})` : ""}</li>
-      <li><strong>平均掲載順位:</strong> ${searchConsole.averagePosition.toFixed(1)} 位${searchConsolePrevious && searchConsolePrevious.averagePosition > 0 ? ` (前期比 ${formatComparison((searchConsole.averagePosition - searchConsolePrevious.averagePosition) / searchConsolePrevious.averagePosition * 100, "lower-is-better", 0)})` : ""}</li>
+      <li><strong>合計クリック数:</strong> ${searchConsole.totalClicks.toLocaleString()} 回${searchConsolePrevious ? ` (前期比 ${formatComparison0(changeRate(searchConsole.totalClicks, searchConsolePrevious.totalClicks))})` : ""}</li>
+      <li><strong>合計インプレッション数:</strong> ${searchConsole.totalImpressions.toLocaleString()} 回${searchConsolePrevious ? ` (前期比 ${formatComparison0(changeRate(searchConsole.totalImpressions, searchConsolePrevious.totalImpressions))})` : ""}</li>
+      <li><strong>平均掲載順位:</strong> ${searchConsole.averagePosition.toFixed(1)} 位${searchConsolePrevious ? ` (前期比 ${formatComparison0(changeRate(searchConsole.averagePosition, searchConsolePrevious.averagePosition), SEARCH_POSITION_METRIC.direction)})` : ""}</li>
     </ul>
 
     ${searchConsole.keywords.length > 0 ? `

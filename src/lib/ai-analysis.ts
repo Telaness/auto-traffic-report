@@ -1,7 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { ReportData } from "@/src/lib/report";
 import { formatRate } from "@/src/lib/format";
-import { formatComparison, getMetricDirection, lowerIsBetterLabels } from "@/src/lib/metrics";
+import { formatComparison, getMetricDirection, LOWER_IS_BETTER_LABELS } from "@/src/lib/metrics";
 
 interface AIAnalysis {
   executiveSummary: string;
@@ -30,7 +30,7 @@ const buildPrompt = (siteName: string, siteUrl: string, data: ReportData): strin
 - 例: 「セッション」→「訪問数」「アクセス数」、「直帰率」→「1ページだけ見て離脱した割合」、「CTR」→「クリック率」、「インプレッション」→「検索結果に表示された回数」、「トラフィック」→「アクセス」
 - 専門用語をどうしても使う場合は必ずカッコ書きで簡単な説明を添えること
 - 具体的な数値を引用しつつ、「つまり何がいいのか・悪いのか・どうすればいいか」を簡潔に伝えること
-- ${[...lowerIsBetterLabels(), "平均掲載順位"].join("・")}は数値が下がることが改善を意味する指標です。前期比のマイナスを悪化と解釈しないこと
+- ${LOWER_IS_BETTER_LABELS.join("・")}は数値が下がることが改善を意味する指標です。前期比のマイナスを悪化と解釈しないこと
 - 各コメントは3〜5文で、やさしく読みやすい文章にすること
 - 「〜と考えられます」「〜がポイントです」のような柔らかい表現を使うこと
 
