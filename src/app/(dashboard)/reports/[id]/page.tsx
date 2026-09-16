@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Card } from "@/src/components/Card";
 import { StatusBadge } from "@/src/components/StatusBadge";
 import { ComparisonRate } from "@/src/components/ComparisonRate";
+import { TRAFFIC_METRICS, formatMetricValue } from "@/src/lib/metrics";
 import type { ReportData } from "@/src/lib/report";
 
 interface DeliveryLog {
@@ -37,37 +38,6 @@ interface ReportDetail {
 const channelLabels: Record<string, string> = {
   email: "メール",
   line: "LINE",
-};
-
-type MetricKey =
-  | "sessions"
-  | "totalUsers"
-  | "screenPageViews"
-  | "bounceRate"
-  | "averageSessionDuration";
-
-type MetricDefinition = {
-  key: MetricKey;
-  label: string;
-  /** モバイルの狭い幅で使う短縮ラベル */
-  shortLabel?: string;
-  /** 0〜1の割合として保持している指標 */
-  isPercent?: boolean;
-  /** 直帰率のように「低いほど良い」指標 */
-  isLowerBetter?: boolean;
-};
-
-const TRAFFIC_METRICS: readonly MetricDefinition[] = [
-  { key: "sessions", label: "セッション数" },
-  { key: "totalUsers", label: "ユーザー数" },
-  { key: "screenPageViews", label: "ページビュー数", shortLabel: "PV数" },
-  { key: "bounceRate", label: "直帰率", isPercent: true, isLowerBetter: true },
-  { key: "averageSessionDuration", label: "平均セッション時間(秒)" },
-];
-
-const formatMetricValue = (value: number | null | undefined, isPercent?: boolean) => {
-  if (value === undefined || value === null) return "-";
-  return isPercent ? `${(value * 100).toFixed(1)}%` : Math.round(value).toLocaleString();
 };
 
 export default function ReportDetailPage() {
@@ -207,7 +177,7 @@ export default function ReportDetailPage() {
                       {comp ? (
                         <ComparisonRate
                           rate={comp.rate}
-                          isLowerBetter={metric.isLowerBetter}
+                          direction={metric.direction}
                           className="text-sm font-medium"
                         />
                       ) : (
@@ -243,7 +213,7 @@ export default function ReportDetailPage() {
                         </td>
                         <td className="py-3 px-4 text-right">
                           {comp ? (
-                            <ComparisonRate rate={comp.rate} isLowerBetter={metric.isLowerBetter} />
+                            <ComparisonRate rate={comp.rate} direction={metric.direction} />
                           ) : (
                             "-"
                           )}

@@ -2,6 +2,10 @@ import { prisma } from "@/src/lib/db";
 import { fetchGA4DetailedData, fetchSearchConsoleData, getLastMonthRange } from "@/src/lib/ga4";
 import type { GA4Metrics, GA4DetailedData, GA4RegionData, GA4SourceData, GA4DeviceData, GA4BrowserData, SearchConsoleData } from "@/src/lib/ga4";
 import { generateAIAnalysis } from "@/src/lib/ai-analysis";
+import { formatRate } from "@/src/lib/format";
+
+// PDFの前期比は従来どおり小数なしで表示する
+const formatRate0 = (rate: number) => formatRate(rate, 0);
 import type { AIAnalysis } from "@/src/lib/ai-analysis";
 
 interface ReportData {
@@ -158,11 +162,6 @@ export const generateReportHtml = (
   const today = new Date();
   const createdDate = `${today.getFullYear()}年${today.getMonth() + 1}月${today.getDate()}日`;
 
-  const formatRate = (rate: number) => {
-    const sign = rate >= 0 ? "+" : "";
-    return `${sign}${rate.toFixed(0)}%`;
-  };
-
   // デバイスサマリー
   const deviceSummary = devices.length > 0
     ? devices.map((d) => {
@@ -216,7 +215,7 @@ export const generateReportHtml = (
 
   <div class="section">
     <h2>1. エグゼクティブサマリー（全体総括）</h2>
-    <p>${aiAnalysis?.executiveSummary ?? `当期間のWebサイトトラフィックの概要です。訪問数は${comparison ? `前期比${formatRate(comparison.sessions.rate)}の` : ""}「${currentMonth.sessions.toLocaleString()}」セッションを記録しました。ユニーク訪問者数は${currentMonth.totalUsers.toLocaleString()}人、ページビュー数は${currentMonth.screenPageViews.toLocaleString()} PVです。`}</p>
+    <p>${aiAnalysis?.executiveSummary ?? `当期間のWebサイトトラフィックの概要です。訪問数は${comparison ? `前期比${formatRate0(comparison.sessions.rate)}の` : ""}「${currentMonth.sessions.toLocaleString()}」セッションを記録しました。ユニーク訪問者数は${currentMonth.totalUsers.toLocaleString()}人、ページビュー数は${currentMonth.screenPageViews.toLocaleString()} PVです。`}</p>
   </div>
 
   <hr class="divider">
@@ -225,11 +224,11 @@ export const generateReportHtml = (
     <h2>2. トラフィック概要と推移</h2>
     <h3>主要指標 (KPI)</h3>
     <ul>
-      <li><strong>訪問数:</strong> ${currentMonth.sessions.toLocaleString()} セッション${comparison ? ` (前期比 ${formatRate(comparison.sessions.rate)})` : ""}</li>
-      <li><strong>ユニーク訪問者数:</strong> ${currentMonth.totalUsers.toLocaleString()} 人${comparison ? ` (前期比 ${formatRate(comparison.totalUsers.rate)})` : ""}</li>
-      <li><strong>ページビュー数:</strong> ${currentMonth.screenPageViews.toLocaleString()} PV${comparison ? ` (前期比 ${formatRate(comparison.screenPageViews.rate)})` : ""}</li>
-      <li><strong>直帰率:</strong> ${(currentMonth.bounceRate * 100).toFixed(1)}%${comparison ? ` (前期比 ${formatRate(comparison.bounceRate.rate)})` : ""}</li>
-      <li><strong>平均セッション時間:</strong> ${Math.round(currentMonth.averageSessionDuration)}秒${comparison ? ` (前期比 ${formatRate(comparison.averageSessionDuration.rate)})` : ""}</li>
+      <li><strong>訪問数:</strong> ${currentMonth.sessions.toLocaleString()} セッション${comparison ? ` (前期比 ${formatRate0(comparison.sessions.rate)})` : ""}</li>
+      <li><strong>ユニーク訪問者数:</strong> ${currentMonth.totalUsers.toLocaleString()} 人${comparison ? ` (前期比 ${formatRate0(comparison.totalUsers.rate)})` : ""}</li>
+      <li><strong>ページビュー数:</strong> ${currentMonth.screenPageViews.toLocaleString()} PV${comparison ? ` (前期比 ${formatRate0(comparison.screenPageViews.rate)})` : ""}</li>
+      <li><strong>直帰率:</strong> ${(currentMonth.bounceRate * 100).toFixed(1)}%${comparison ? ` (前期比 ${formatRate0(comparison.bounceRate.rate)})` : ""}</li>
+      <li><strong>平均セッション時間:</strong> ${Math.round(currentMonth.averageSessionDuration)}秒${comparison ? ` (前期比 ${formatRate0(comparison.averageSessionDuration.rate)})` : ""}</li>
     </ul>
     ${aiAnalysis?.trafficComment ? `
     <div class="comment-box">
@@ -301,8 +300,8 @@ export const generateReportHtml = (
     <h2>5. 検索パフォーマンス (SEO分析)</h2>
     <h3>Google検索経由でのパフォーマンス</h3>
     <ul>
-      <li><strong>合計クリック数:</strong> ${searchConsole.totalClicks.toLocaleString()} 回${searchConsolePrevious ? ` (前期比 ${formatRate(searchConsolePrevious.totalClicks > 0 ? ((searchConsole.totalClicks - searchConsolePrevious.totalClicks) / searchConsolePrevious.totalClicks * 100) : 0)})` : ""}</li>
-      <li><strong>合計インプレッション数:</strong> ${searchConsole.totalImpressions.toLocaleString()} 回${searchConsolePrevious ? ` (前期比 ${formatRate(searchConsolePrevious.totalImpressions > 0 ? ((searchConsole.totalImpressions - searchConsolePrevious.totalImpressions) / searchConsolePrevious.totalImpressions * 100) : 0)})` : ""}</li>
+      <li><strong>合計クリック数:</strong> ${searchConsole.totalClicks.toLocaleString()} 回${searchConsolePrevious ? ` (前期比 ${formatRate0(searchConsolePrevious.totalClicks > 0 ? ((searchConsole.totalClicks - searchConsolePrevious.totalClicks) / searchConsolePrevious.totalClicks * 100) : 0)})` : ""}</li>
+      <li><strong>合計インプレッション数:</strong> ${searchConsole.totalImpressions.toLocaleString()} 回${searchConsolePrevious ? ` (前期比 ${formatRate0(searchConsolePrevious.totalImpressions > 0 ? ((searchConsole.totalImpressions - searchConsolePrevious.totalImpressions) / searchConsolePrevious.totalImpressions * 100) : 0)})` : ""}</li>
       <li><strong>平均掲載順位:</strong> ${searchConsole.averagePosition.toFixed(1)} 位${searchConsolePrevious ? ` (前期比 ${searchConsole.averagePosition <= searchConsolePrevious.averagePosition ? `${((1 - searchConsole.averagePosition / searchConsolePrevious.averagePosition) * 100).toFixed(0)}%向上` : `${((searchConsole.averagePosition / searchConsolePrevious.averagePosition - 1) * 100).toFixed(0)}%低下`})` : ""}</li>
     </ul>
 

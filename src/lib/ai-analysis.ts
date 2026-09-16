@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { ReportData } from "@/src/lib/report";
+import { formatRate } from "@/src/lib/format";
 
 interface AIAnalysis {
   executiveSummary: string;
@@ -18,7 +19,6 @@ const getClient = (): Anthropic | null => {
 const buildPrompt = (siteName: string, siteUrl: string, data: ReportData): string => {
   const { currentMonth, comparison, regions, sources, devices, browsers, searchConsole, period } = data;
 
-  const formatRate = (rate: number) => `${rate >= 0 ? "+" : ""}${rate.toFixed(1)}%`;
   const totalSessions = devices.reduce((sum, d) => sum + d.sessions, 0);
 
   return `あなたはWebマーケティングの専門アナリストです。以下のWebサイトのトラフィックデータを基に、クライアントに提出する分析レポートのコメントを生成してください。
