@@ -38,6 +38,17 @@ const channelLabels: Record<string, string> = {
   line: "LINE",
 };
 
+// 前期比の増減表示。増加はグレー、減少のみ識別性を優先して赤を残す。
+const ComparisonRate = ({ rate, className = "" }: { rate: number; className?: string }) => {
+  const isUp = rate >= 0;
+  return (
+    <span className={`${isUp ? "text-gray-900" : "text-red-600"} ${className}`}>
+      {isUp ? "↑" : "↓"} {isUp ? "+" : ""}
+      {rate.toFixed(1)}%
+    </span>
+  );
+};
+
 export default function ReportDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -66,11 +77,6 @@ export default function ReportDetailPage() {
   }
 
   const reportData = report.reportData;
-  const formatRate = (rate: number) => {
-    const sign = rate >= 0 ? "+" : "";
-    return `${sign}${rate.toFixed(1)}%`;
-  };
-
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
@@ -132,7 +138,7 @@ export default function ReportDetailPage() {
                   key={log.id}
                   className={`p-3 rounded-lg border ${
                     log.status === "success"
-                      ? "bg-green-50 border-green-200"
+                      ? "bg-gray-50 border-gray-200"
                       : "bg-red-50 border-red-200"
                   }`}
                 >
@@ -191,9 +197,7 @@ export default function ReportDetailPage() {
                     <div className="text-right">
                       <p className="text-xs text-gray-400">前期: {displayPrevious}</p>
                       {comp ? (
-                        <p className={`text-sm font-medium ${comp.rate >= 0 ? "text-green-600" : "text-red-600"}`}>
-                          {comp.rate >= 0 ? "↑" : "↓"} {formatRate(comp.rate)}
-                        </p>
+                        <ComparisonRate rate={comp.rate} className="text-sm font-medium" />
                       ) : (
                         <p className="text-sm text-gray-400">-</p>
                       )}
@@ -240,9 +244,7 @@ export default function ReportDetailPage() {
                         <td className="py-3 px-4 text-right text-gray-500">{displayPrevious}</td>
                         <td className="py-3 px-4 text-right">
                           {comp ? (
-                            <span className={comp.rate >= 0 ? "text-green-600" : "text-red-600"}>
-                              {comp.rate >= 0 ? "↑" : "↓"} {formatRate(comp.rate)}
-                            </span>
+                            <ComparisonRate rate={comp.rate} />
                           ) : (
                             "-"
                           )}

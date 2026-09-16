@@ -56,7 +56,7 @@ export default async function DashboardPage() {
         <Card>
           <div className="text-center">
             <p className="text-xs sm:text-sm text-gray-500">配信成功数</p>
-            <p className="text-2xl sm:text-3xl font-bold text-green-600 mt-1 sm:mt-2">
+            <p className="text-2xl sm:text-3xl font-bold text-gray-900 mt-1 sm:mt-2">
               {successCount}
             </p>
           </div>
