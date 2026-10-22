@@ -204,14 +204,14 @@ export default function BatchPage() {
   }, [showForm, fetchAvailableClients]);
 
   useEffect(() => {
-    if (!selectedSubscriptionId) {
-      setSingleSites([]);
-      setSelectedSiteIds([]);
-      return;
-    }
-    const sub = subscriptions.find((s) => s.id === selectedSubscriptionId);
-    if (!sub) return;
     const load = async () => {
+      if (!selectedSubscriptionId) {
+        setSingleSites([]);
+        setSelectedSiteIds([]);
+        return;
+      }
+      const sub = subscriptions.find((s) => s.id === selectedSubscriptionId);
+      if (!sub) return;
       setIsLoadingSites(true);
       try {
         const sites = await fetchActiveSitesByClient(sub.clientId);
